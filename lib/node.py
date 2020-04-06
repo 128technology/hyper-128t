@@ -140,6 +140,9 @@ class Node(VM):
         """Copy ssh keys for specified users."""
         commands = []
         for user, ssh_key in self.ssh_keys.items():
+            if user == 'netconf':
+                # netconf is no user account
+                continue
             commands.append(
                 'mkdir ~{}/.ssh; echo "{}" >> ~{}/.ssh/authorized_keys'.format(
                     user, ssh_key, user))
@@ -158,10 +161,14 @@ class Node(VM):
         if self.role != 'conductor':
             fatal('This method should not be triggered on routers.')
 
+        debug('Run prepare_netconf')
+
         # load ssh key for netconf - if not defined, fall back to root
         netconf_authorized_keys = self.ssh_keys.get('netconf')
+        self.router.netconf_key = self.ssh_keys_private.get('netconf')
         if not netconf_authorized_keys:
             netconf_authorized_keys = self.ssh_keys['root']
+            self.router.netconf_key = self.ssh_keys_private.get('root')
 
         ret = self.run_ssh([
             'while [ ! -s /home/admin/.ssh/netconf_authorized_keys ]; do sleep 5; done',

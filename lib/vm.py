@@ -4,22 +4,24 @@ import json
 from openssh_wrapper import SSHConnection, SSHError
 import os
 from passlib.hash import sha512_crypt
+from subprocess import check_call, check_output, CalledProcessError
 
 from lib.log import debug, fatal
 
 
-def get_ssh_conn(ip_address, login='root'):
+def get_ssh_conn(ip_address, login='root', identity_file=None):
     """Return ssh connection."""
-    cf = 'ssh_config'
-    if not os.path.isfile(cf):
-        cf = None
-    return SSHConnection(ip_address, login=login, configfile=cf)
+    configfile = 'ssh_config'
+    if not os.path.isfile(configfile):
+        configfile = None
+    return SSHConnection(ip_address, login=login, configfile=configfile,
+                         identity_file=identity_file)
 
 
-def scp_down(ip_address, source_file, destination_file):
+def scp_down(ip_address, source_file, destination_file, identity_file=None):
     """Download a file over ssh."""
     with open(destination_file, 'wb') as fd:
-        conn = get_ssh_conn(ip_address)
+        conn = get_ssh_conn(ip_address, identity_file=identity_file)
         ret = conn.run('cat {}'.format(source_file))
         fd.write(ret.stdout)
 
@@ -30,11 +32,6 @@ def address_to_ip_prefix(address):
 
 
 class VM(object):
-    name = 'unknown'
-    hypervisor = None
-    passwords = {}
-    ip_config = OrderedDict()
-    ssh_keys = {}
 
     def set_name(self, suffix):
         """Set instance name."""
@@ -58,24 +55,50 @@ class VM(object):
 
     def set_passwords(self, passwords):
         """Convert cleartext passwords to hashes."""
+        self.passwords = {}
         for user_name in passwords:
             self.passwords[user_name] = sha512_crypt.hash(
                 passwords[user_name], rounds=5000)
 
     def set_ssh_keys(self, ssh_keys):
         """Load ssh public keys from file if needed."""
+        self.ssh_keys = {}
+        self.ssh_keys_private = {}
         for user_name in ssh_keys:
-            if user_name == 'jdoe':
-                continue
             key = ssh_keys[user_name]
             if key.startswith('file:'):
-                with open(key.split('file:')[1]) as fd:
+                public_key_file = key.split('file:')[1]
+                with open(public_key_file) as fd:
                     key = fd.read()
+                # try to open private key
+                private_key_file = public_key_file.split('.pub')[0]
+                try:
+                    with open(private_key_file) as fd:
+                        self.ssh_keys_private[user_name] = private_key_file
+                except FileNotFoundError:
+                    pass
+
             self.ssh_keys[user_name] = key.strip()
+            if user_name == 'root':
+                # check if the private key is available:
+                # (1) check ssh-agent
+                # (2) check for private key file
+                command = "echo {} | ssh-keygen -l -f - | awk '{{ print $2 }}'"
+                finger = check_output(command.format(self.ssh_keys[user_name]),
+                                      shell=True, encoding='ascii')
+                try:
+                    command = 'ssh-add -l | grep -q {}'
+                    check_call(command.format(finger), shell=True)
+                    return
+                except CalledProcessError:
+                    if user_name not in self.ssh_keys_private:
+                        fatal('Could not find matching ssh key for root -',
+                              'neither in ssh-agent nor on disk.')
 
     def run_ssh(self, commands):
         """Run ssh commands on virtual machine."""
-        conn = get_ssh_conn(self.ip_address)
+        identity_file = self.ssh_keys_private.get('root')
+        conn = get_ssh_conn(self.ip_address, identity_file=identity_file)
         if type(commands) not in (tuple, list):
             commands = [commands]
         for command in commands:
@@ -88,7 +111,8 @@ class VM(object):
 
     def run_scp(self, source, target, mode='0644', owner='root:'):
         """Run scp commands to virtual machine."""
-        conn = get_ssh_conn(self.ip_address)
+        identity_file = self.ssh_keys_private.get('root')
+        conn = get_ssh_conn(self.ip_address, identity_file=identity_file)
         conn.scp((source, ), target=target, mode=mode, owner=owner)
 
     def retrieve_pci_addresses(self):
@@ -106,7 +130,7 @@ class VM(object):
                     if subsystem["class"] == "network":
                         index = int(subsystem["id"].split(':')[1])
                         pci_addresses.append((index, subsystem["businfo"]))
-        pci_addresses = [v.strip('pci@') for k,v in sorted(pci_addresses)]
+        pci_addresses = [v.strip('pci@') for k,     v in sorted(pci_addresses)]
         # iterate over interfaces and set pci address
         i = 0
         for interface in self.interfaces:

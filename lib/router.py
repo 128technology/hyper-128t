@@ -83,6 +83,7 @@ class Router(object):
 
     def configure(self):
         conductor_netconf_ip = self.deployment.conductor.ip_adresses[0]
+        identity_file = self.deployment.conductor.netconf_key
         context = {}
         context['router'] = self
         context['deployment'] = self.deployment
@@ -92,7 +93,8 @@ class Router(object):
             scp_down(
                 conductor_netconf_ip,
                 '/var/model/consolidatedT128Model.xml',
-                t128_model.name)
+                t128_model.name,
+                identity_file=identity_file)
             text_config = ct.get_text_config(context, self.config_template)
             with open('audit/{}.cfg'.format(self.name), 'w') as fd:
                 fd.write(text_config)
@@ -102,7 +104,8 @@ class Router(object):
             return False
 
         try:
-            with t128ConfigHelper(host=conductor_netconf_ip) as ch:
+            with t128ConfigHelper(host=conductor_netconf_ip,
+                                  key_filename=identity_file) as ch:
                 edit_status = ch.edit(xml_config, 'conductor timeout error')
         except RPCError as e:
             info("There was an error in the config: {}".format(e))
@@ -112,7 +115,8 @@ class Router(object):
             info(edit_status)
 
         if edit_status.ok:
-            with t128ConfigHelper(host=conductor_netconf_ip) as ch:
+            with t128ConfigHelper(host=conductor_netconf_ip,
+                                  key_filename=identity_file) as ch:
                 try:
                     commit_status = ch.commit()
                 except RPCError as e:
