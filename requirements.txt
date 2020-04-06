@@ -1,0 +1,10 @@
+flask
+lxml
+openssh_wrapper
+paramiko
+passlib
+proxmoxer
+pyyaml
+requests
+six
+yinsolidated

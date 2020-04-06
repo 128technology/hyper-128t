@@ -1,0 +1,93 @@
+config
+    authority
+        router {{ router.name }}
+            name {{ router.name }}
+            description "automatically generated router"
+            inter-node-security inter-router
+{%- if router.location %}
+            location {{ router.location }}
+{%- endif %}
+{%- if router.gps %}
+            location-coordinates  {{ router.gps }}
+{%- endif %}
+{%- for node in router.nodes %}
+            node {{ node.name }}
+                name {{ node.name }}
+                role combo
+                asset-id {{ node.fqdn }}
+
+            {%- for interface_name, interface in node.interfaces.items() %}
+                device-interface  {{ interface_name }}
+                    name               {{ interface_name }}
+                    pci-address        {{ interface.pci_address }}
+                    network-interface  {{ interface_name }}
+                        name           {{ interface_name }}
+                    {%- if interface_name == "wan" %}
+                        source-nat     true
+                    {%- endif %}
+                        address    {{ interface.ip_address }}
+                            ip-address     {{ interface.ip_address }}
+                            prefix-length  {{ interface.ip_prefix }}
+                        {%- if interface.gateway %}
+                            gateway        {{ interface.gateway }}
+                        {%- endif %}
+                        exit
+                    exit
+                exit
+            {%- endfor %}
+
+                device-interface  loopback
+                    name               loopback
+                    type               host
+
+                    network-interface  loopback
+                        name               loopback
+                        default-route      true
+                        tenant             128t_management
+                        source-nat         true
+
+                        management-vector
+                            name      loopback-vector
+                            priority  200
+                        exit
+
+                        address            169.254.20.1
+                            ip-address     169.254.20.1
+                            prefix-length  30
+                            gateway        169.254.20.2
+                        exit
+                    exit
+                exit
+            exit
+{%- endfor %}
+            service-route         local_internet
+                name          local_internet
+                service-name  local_internet
+
+            {%- for node in router.nodes %}
+                next-hop      {{ node.name }} wan
+                    node-name  {{ node.name }}
+                    interface  wan
+                    gateway-ip        {{ node.interfaces.wan.gateway }}
+                exit
+            {%- endfor %}
+            exit
+        exit
+        security inter-router
+            name inter-router
+        exit
+
+        service            local_internet
+            name                  local_internet
+            address               0.0.0.0/0
+
+            access-policy         128t_management
+                source  128t_management
+            exit
+            share-service-routes  false
+        exit
+        tenant             128t_management
+            name  128t_management
+        exit
+    exit
+exit

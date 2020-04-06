@@ -1,0 +1,26 @@
+config
+    authority
+        name {{ deployment.name }}
+        router {{ router.name }}
+            name {{ router.name }}
+            description automatically generated conductor
+            inter-node-security internal
+{%- if router.location %}
+            location {{ router.location }}
+{%- endif %}
+{%- if router.gps %}
+            location-coordinates  {{ router.gps }}
+{%- endif %}
+            system
+                inactivity-timer  86400
+            exit
+{%- for node in router.nodes %}
+            node {{ node.name }}
+                    name {{ node.name }}
+                role conductor
+                asset-id {{ node.fqdn }}
+            exit
+{%- endfor %}
+        exit
+    exit
+exit

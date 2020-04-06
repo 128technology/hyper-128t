@@ -1,0 +1,236 @@
+config
+
+    authority
+        name {{ customer }}
+        conductor-address  {{ conductor_node1_public_ip }}
+
+        remote-login
+
+        exit
+
+        router             {{ customer }}-conductor
+            name                  {{ customer }}-conductor
+{%- if conductor_location %}
+            location              {{ conductor_location }}
+{%- endif %}
+{%- if conductor_gps %}
+            location-coordinates  {{ conductor_gps }}
+{%- endif %}
+
+            entitlement
+                id  plusnet
+            exit
+
+            system
+                log-level         debug
+                inactivity-timer  86400
+
+                ntp
+
+                    server  5.199.135.170
+                        ip-address  5.199.135.170
+                    exit
+
+                    server  78.46.204.247
+                        ip-address  78.46.204.247
+                    exit
+
+                    server  85.236.36.4
+                        ip-address  85.236.36.4
+                    exit
+                exit
+            exit
+
+            node                  {{ customer }}-conductor
+                name              {{ customer }}-conductor
+                role              conductor
+                asset-id          {{ customer }}-conductor.sdwan.msp.invalid
+            exit
+        exit
+
+        tenant             128t_Management
+            name  128t_Management
+        exit
+
+        security           inter-router
+            name               inter-router
+            hmac-cipher        sha256-128
+            encryption-cipher  aes-cbc-128
+        exit
+
+        security           unencrypted
+            name                 unencrypted
+            hmac-cipher          sha256-128
+            encryption-cipher    aes-cbc-128
+            encrypt              false
+            adaptive-encryption  false
+        exit
+
+        service            local_internet
+            name                  local_internet
+            address               0.0.0.0/0
+
+            access-policy         128t_Management
+                source  128t_Management
+            exit
+            share-service-routes  false
+        exit
+
+        service-policy     loadbalancing
+            name                         loadbalancing
+            lb-strategy                  proportional
+
+            vector                       WAN-Internet
+                name      WAN-Internet
+                priority  10
+            exit
+
+            vector                       WAN-Internet-2
+                name      WAN-Internet-2
+                priority  10
+            exit
+
+            vector                       MPLS-VPN272
+                name      MPLS-VPN272
+                priority  10
+            exit
+
+            vector                       LTE
+                name      LTE
+                priority  40
+            exit
+            session-resiliency           revertible-failover
+            path-quality-filter          true
+            max-loss                     6
+            max-latency                  150
+            max-jitter                   30
+            transport-state-enforcement  allow
+            ingress-source-nat           disabled
+        exit
+
+        service-policy     Best-Effort
+            name                         Best-Effort
+            service-class                Best-Effort
+            lb-strategy                  proportional
+            required-qp                  0
+            qp-preference                highest
+            session-resiliency           none
+            path-quality-filter          false
+            best-effort                  true
+            transport-state-enforcement  allow
+        exit
+
+        service-policy     Gold-Failover
+            name                         Gold-Failover
+            service-class                Gold
+            lb-strategy                  proportional
+            required-qp                  0
+            qp-preference                highest
+            session-resiliency           revertible-failover
+            peer-path-resiliency         false
+            path-quality-filter          false
+            best-effort                  true
+            transport-state-enforcement  allow
+        exit
+
+        service-policy     Failover
+            name                         Failover
+            service-class                Standard
+            lb-strategy                  proportional
+
+            vector                       WAN-Internet
+                name      WAN-Internet
+                priority  10
+            exit
+
+            vector                       WAN-Internet-2
+                name      WAN-Internet-2
+                priority  20
+            exit
+
+            vector                       MPLS-VPN272
+                name      MPLS-VPN272
+                priority  10
+            exit
+            required-qp                  0
+            qp-preference                highest
+            session-resiliency           revertible-failover
+            peer-path-resiliency         false
+            path-quality-filter          false
+            best-effort                  true
+            transport-state-enforcement  allow
+        exit
+
+        service-policy     Silver-Failover
+            name                         Silver-Failover
+            service-class                Silver
+            lb-strategy                  proportional
+            required-qp                  0
+            qp-preference                highest
+            session-resiliency           revertible-failover
+            peer-path-resiliency         false
+            path-quality-filter          false
+            best-effort                  true
+            transport-state-enforcement  allow
+        exit
+
+        service-policy     All-Links
+            name                         All-Links
+            service-class                HighThroughputData
+            lb-strategy                  hunt
+            required-qp                  0
+            qp-preference                highest
+            session-resiliency           none
+            path-quality-filter          true
+            best-effort                  true
+            transport-state-enforcement  allow
+        exit
+
+        service-policy     Failover_NoLTE
+            name         Failover_NoLTE
+            lb-strategy  proportional
+
+            vector       WAN-Internet
+                name      WAN-Internet
+                priority  10
+            exit
+
+            vector       WAN-Internet-2
+                name      WAN-Internet-2
+                priority  20
+            exit
+
+            vector       MPLS-VPN847
+                name      MPLS-VPN847
+                priority  30
+            exit
+        exit
+
+        service-class      Gold
+            name            Gold
+            dscp            42
+            traffic-class   high
+            rate-limit      false
+            max-flow-rate   0
+            max-flow-burst  0
+        exit
+
+        service-class      Best-Effort
+            name            Best-Effort
+            dscp            2
+            traffic-class   best-effort
+            rate-limit      false
+            max-flow-rate   0
+            max-flow-burst  0
+        exit
+
+        service-class      Silver
+            name            Silver
+            dscp            60
+            traffic-class   medium
+            rate-limit      false
+            max-flow-rate   0
+            max-flow-burst  0
+        exit
+    exit
+exit

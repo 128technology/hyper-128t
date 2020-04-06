@@ -1,0 +1,42 @@
+config
+    authority
+        name {{ deployment.name }}
+        router {{ router.name }}
+            name {{ router.name }}
+            description automatically generated conductor
+            inter-node-security internal
+{%- if router.location %}
+            location {{ router.location }}
+{%- endif %}
+{%- if router.gps %}
+            location-coordinates  {{ router.gps }}
+{%- endif %}
+            system
+                inactivity-timer  86400
+            exit
+{%- for node in router.nodes %}
+            node {{ node.name }}
+                    name {{ node.name }}
+                role conductor
+                asset-id {{ node.fqdn }}
+
+                device-interface  ha_sync
+                    name               ha_sync
+                    pci-address        {{ node.interfaces.ha_sync.pci_address }}
+                    forwarding         false
+
+                    network-interface  ha_sync
+                        name       ha_sync
+                        type       fabric
+
+                        address    {{ node.interfaces.ha_sync.ip_address }}
+                            ip-address     {{ node.interfaces.ha_sync.ip_address }}
+                            prefix-length  {{ node.interfaces.ha_sync.ip_prefix }}
+                        exit
+                    exit
+                exit
+            exit
+{%- endfor %}
+        exit
+    exit
+exit

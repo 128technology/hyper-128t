@@ -1,0 +1,10 @@
+<H1>Please Enter Values for Template Variables</H1>
+<H2>Template {{ template }}</H2>
+<form action="/api/v1/push_template" method="POST">
+    <input hidden type="text" id="template_name" name="template_name" value="{{ template }}"><br>
+    <label for="conductor_netconf_ip">Conductor Netconf IP</label><input type="text" id="conductor_netconf_ip" name="conductor_netconf_ip"><br>
+{% for var in variables|sort %}
+    <label for="{{ var }}">{{ var }}</label><input type="text" id="{{ var }}" name="{{ var }}"><br>
+{% endfor %}
+    <input type="submit" value="Push Config">
+</form>
