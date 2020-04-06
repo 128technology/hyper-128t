@@ -16,7 +16,7 @@ After checking out the git repository, create a python virtual environment, and 
 
 ```
 $ git clone https://github.com/128technology/hyper-128t.git
-$ cd multi-128t/
+$ cd hyper-128t/
 $ virtualenv -p python3 --system-site-packages venv
 $ venv/bin/pip install -r requirements.txt
 ```
