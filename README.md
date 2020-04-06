@@ -15,7 +15,7 @@ $ yum install -y git python3 python-virtualenv
 After checking out the git repository, create a python virtual environment, and install needed libraries using pip:
 
 ```
-$ git clone ...
+$ git clone https://github.com/128technology/hyper-128t.git
 $ cd multi-128t/
 $ virtualenv -p python3 --system-site-packages venv
 $ venv/bin/pip install -r requirements.txt
