@@ -1,7 +1,8 @@
 """Class for 128T deployments."""
+import os
 
 from lib.conductor import Conductor
-from lib.log import info
+from lib.log import fatal, info
 from lib.router import Headend
 from lib.providers import get_provider
 
@@ -20,6 +21,9 @@ class Deployment(object):
         """Set parameters for templating."""
         self.name = self.parameters['deployment_name']
         self.license_file = self.parameters['license_file']
+        if not os.path.isfile(self.license_file):
+            fatal('License file "{}" could not be found.'.format(
+                self.license_file))
         self.domain_name = self.parameters['domain_name']
         self.high_available = self.parameters.get('high_available', False)
 
