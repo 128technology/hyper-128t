@@ -1,0 +1,38 @@
+deployment_name: acme
+domain_name: sdwan.msp.invalid
+license_file: acme-license.pem
+conductor:
+  interfaces:
+    wan:
+      address: 10.128.1.128/16
+      gateway: 10.128.1.1
+    ha_sync:
+      address: 172.28.1.128/16
+  passwords:
+    admin: secret
+    root: high.secret
+    t128: very.secret
+  ssh_keys:
+    root: file:id_rsa_acme.pub
+    t128: file:id_rsa_acme.pub
+    netconf: file:id_rsa_acme.pub
+  # config_templates are searched in directory "config_templates"
+  config_template: conductor.j2
+  gps: +51.061943+010.364245/
+  location: ACME datacenter
+headend:
+  interfaces:
+    wan:
+      address: 10.128.1.129/16
+      gateway: 10.128.1.1
+    mpls:
+      address: 192.168.1.129/16
+      gateway: 192.168.1.1
+  passwords:
+    admin: secret
+    root: high.secret
+    t128: very.secret
+  ssh_keys:
+    root: file:id_rsa_acme.pub
+    t128: file:id_rsa_acme.pub
+  config_template: router.j2

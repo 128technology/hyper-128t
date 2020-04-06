@@ -1,0 +1,7 @@
+provider: proxmox
+hypervisors:
+  - promox-node-1.example.com
+  - promox-node-2.example.com
+username: root@pam
+password: XXXXXXXXXXXXXXXXXXXX
+reference_template: 20200401-128t-template
