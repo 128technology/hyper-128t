@@ -3,8 +3,8 @@ domain_name: sdwan.msp.invalid
 license_file: acme-license.pem
 high_available: true
 conductor:
-  a:
-    interfaces:
+  interfaces:
+    a:
       wan:
         address: 10.128.1.128/16
         gateway: 10.128.1.1
