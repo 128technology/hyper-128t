@@ -1,0 +1,11 @@
+[Unit]
+Description=Service to provide a REST API for provisioning templates to 128T over Netconf
+
+[Service]
+WorkingDirectory=/root/hyper-128t
+ExecStart=/root/hyper-128t/provisioner-api.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
