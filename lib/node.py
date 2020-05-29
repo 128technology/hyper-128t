@@ -133,7 +133,7 @@ class Node(VM):
             if user == 'admin':
                 continue
             commands.append(
-                'echo "{}:{}" | chpasswd -e'.format(user, password))
+                "echo '{}:{}' | chpasswd -e".format(user, password))
         ret = self.run_ssh(commands)
 
     def copy_ssh_keys(self):
