@@ -3,6 +3,7 @@
 
 class Hypervisor(object):
 
-    def __init__(self, config, host):
+    def __init__(self, config, host, index):
         self.config = config
         self.host = host
+        self.index = index

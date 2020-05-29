@@ -18,10 +18,10 @@ def get_ssh_conn(ip_address, login='root', identity_file=None):
                          identity_file=identity_file)
 
 
-def scp_down(ip_address, source_file, destination_file, identity_file=None):
+def scp_down(ip_address, source_file, destination_file, login='root', identity_file=None):
     """Download a file over ssh."""
     with open(destination_file, 'wb') as fd:
-        conn = get_ssh_conn(ip_address, identity_file=identity_file)
+        conn = get_ssh_conn(ip_address, login=login, identity_file=identity_file)
         ret = conn.run('cat {}'.format(source_file))
         fd.write(ret.stdout)
 

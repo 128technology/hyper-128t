@@ -94,6 +94,7 @@ class Router(object):
                 conductor_netconf_ip,
                 '/var/model/consolidatedT128Model.xml',
                 t128_model.name,
+#                login='admin',
                 identity_file=identity_file)
             text_config = ct.get_text_config(context, self.config_template)
             with open('audit/{}.cfg'.format(self.name), 'w') as fd:

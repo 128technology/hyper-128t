@@ -10,11 +10,23 @@ class Proxmox(Hypervisor):
     proxmox = None
 
     def init_api(self):
+        node = ''
+        if ':' in self.host:
+            self.host, node = self.host.split(':')
         self.proxmox = ProxmoxAPI(
             host=self.host,
             user=self.config['username'],
-            password=self.config['password'])
-        self.default_node = self.proxmox.nodes.get()[0]['node']
+            password=self.config['password'],
+            verify_ssl=self.config.get('verify_ssl', True))
+        nodes = [d['node'] for d in self.proxmox.nodes.get()]
+        if node:
+            if node not in nodes:
+                fatal('Specified node {} not configured on host {}'.format(
+                    self.host, node))
+            self.default_node = node
+        else:
+            self.default_node = nodes[0]
+
 
     def deploy_vm(self, instance, assume_yes):
         """Deploy a VM on the given hypervisor."""
@@ -36,8 +48,8 @@ class Proxmox(Hypervisor):
         if not template_id:
             fatal('Template could not be found on: {}.'.format(self.host))
 
-        # find next free vm id starting at 100
-        new_id = 100
+        # find next free vm id starting at 1001/2001
+        new_id = self.index * 1000 + 1
         for id in sorted(vm_ids):
             if id == new_id:
                 new_id += 1

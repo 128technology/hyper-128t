@@ -6,5 +6,6 @@ passlib
 proxmoxer
 pyyaml
 requests
+simple-term-menu
 six
 yinsolidated

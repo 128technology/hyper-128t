@@ -31,8 +31,8 @@ class Deployment(object):
         """Load hypervisors as configured."""
         provider = get_provider(self.config['provider'])
         self.hypervisors = []
-        for host in self.config['hypervisors']:
-            hypervisor = provider.Hypervisor(self.config, host)
+        for index, host in enumerate(self.config.get('hypervisors')):
+            hypervisor = provider.Hypervisor(self.config, host, index+1)
             self.hypervisors.append(hypervisor)
 
         # TODO: subset selection to be implemented
@@ -59,7 +59,8 @@ class Deployment(object):
         self.conductor.create()
         info('Conductor IP address(es):', ' '.join(self.conductor.ip_adresses))
 
-        self.set_headend(self.hypervisors_headend, suffixes)
-        self.headend.create()
+        if 'headend' in self.parameters:
+            self.set_headend(self.hypervisors_headend, suffixes)
+            self.headend.create()
         #branch = Branch(self)
         #self.branches.append(branch)

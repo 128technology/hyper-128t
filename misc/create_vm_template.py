@@ -11,7 +11,7 @@ import time
 
 from lib.argparse import common_parser, parse_config, parse_parameters
 from lib.config import read_config
-from lib.log import debug, info, set_log_level
+from lib.log import debug, fatal, info, set_log_level
 
 TEMPLATE_NAME = '{:%Y%m%d}-128t-template-{}'
 DEFAULTS = {
@@ -21,7 +21,7 @@ DEFAULTS = {
     'net0': 'e1000,bridge=vmbr0',
     'net1': 'e1000,bridge=vmbr1',
     'ostype': 'l26',
-    'scsi0': 'lvm_thin:64',
+    'scsi0': 'local-lvm:64',
     'scsihw': 'virtio-scsi-pci',
     'start': '1',
 }
@@ -35,13 +35,13 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def get_free_vmid(proxmox, node):
+def get_free_vmid(proxmox, node, base):
     vm_ids = []
     for vm in proxmox.nodes(node).qemu.get():
         vm_ids.append(int(vm['vmid']))
 
     # find next free vm id starting at 999 downwards
-    new_id = 999
+    new_id = base + 999
     for id in sorted(vm_ids, reverse=True):
         if id == new_id:
             new_id -= 1
@@ -71,13 +71,24 @@ def main():
     set_log_level(log_level)
 
     config = read_config(args.config_file)
-    for host in config.get('hypervisors'):
+    for index, host in enumerate(config.get('hypervisors')):
+        node = ''
+        if ':' in host:
+            host, node = host.split(':')
         proxmox = ProxmoxAPI(
             host=host,
             user=config['username'],
-            password=config['password'])
-        default_node = proxmox.nodes.get()[0]['node']
-        new_id = get_free_vmid(proxmox, default_node)
+            password=config['password'],
+            verify_ssl=config.get('verify_ssl', True))
+        nodes = [d['node'] for d in proxmox.nodes.get()]
+        if node:
+            if node not in nodes:
+                fatal('Specified node {} not configured on host {}'.format(
+                    host, node))
+            default_node = node
+        else:
+            default_node = nodes[0]
+        new_id = get_free_vmid(proxmox, default_node, (index+1)*1000)
         iso_image = get_iso_image(proxmox, default_node)
         version = iso_image.replace(
             'local:iso/128T-', '').replace(
@@ -115,5 +126,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# MKISO: Default timeout = 1
