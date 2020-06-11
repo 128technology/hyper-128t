@@ -1,0 +1,20 @@
+{% extends "base_nav.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% set _form_type = form_type or 'horizontal' %}
+{% set _action = action or '' %}
+{% block app_content %}
+    <div class="jumbotron" style="background: #fcfcfc">
+        <h3>{{ title }}</h3>
+        <hr />
+        <div>
+            {{ wtf.quick_form(form, form_type=_form_type, action=_action,
+                    button_map={"submit": "primary",
+                                "create": "primary",
+                                "update": "primary",
+                                "commit": "success",
+                                "delete": "danger"
+            }) }}
+        </div>
+    </div>
+{% endblock %}

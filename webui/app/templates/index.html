@@ -1,0 +1,10 @@
+{% extends "base_nav.html" %}
+
+{% block app_content %}
+    <div class="jumbotron" style="background: #fcfcfc">
+        <h2>Welcome, {{ current_user.firstname }}!</h2>
+        <br />
+        <p>This tool helps you to manage deployments and sites as part of a Hyper-128T installation.</p>
+        <p>In order to create, edit, or commit a new site for an existing deployment please select the Deployment from the navigation bar at the top of this page.<br /> Afterwards select the appropriate action from the Sites menu.</p>
+    </div>
+{% endblock %}

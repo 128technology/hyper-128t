@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+{% set selected_deployment = session.get('selected_deployment') -%}
+
+{% block styles %}
+    {{super()}}
+    <style>
+        .navbar .divider-vertical {
+            height: 2em;
+            margin: 10px 20px;
+            border-left: 2px solid #888;
+        }
+        .dropdown-submenu {
+            position:relative;
+        }
+        .dropdown-submenu>.dropdown-menu {
+            top:0;
+            left:100%;
+            margin-top:-6px;
+            margin-left:-1px;
+            -webkit-border-radius:0 6px 6px 6px;
+            -moz-border-radius:0 6px 6px 6px;
+            border-radius:0 6px 6px 6px;
+        }
+        .dropdown-submenu:hover>.dropdown-menu {
+            display:block;
+        }
+        .dropdown-submenu>a:after {
+            display:block;
+            content:" ";
+            float:right;
+            width:0;
+            height:0;
+            border-color:transparent;
+            border-style:solid;
+            border-width:5px 0 5px 5px;
+            border-left-color:#cccccc;
+            margin-top:5px;
+            margin-right:-10px;
+        }
+        .dropdown-submenu:hover>a:after {
+            border-left-color:#ffffff;
+        }
+        .dropdown-submenu.pull-left {
+            float:none;
+        }
+        .dropdown-submenu.pull-left>.dropdown-menu {
+            left:-100%;
+            margin-left:10px;
+            -webkit-border-radius:6px 0 6px 6px;
+            -moz-border-radius:6px 0 6px 6px;
+            border-radius:6px 0 6px 6px;
+        }
+    </style>
+    <script type="text/javascript">
+        function load_template(select) {
+          // console.log(select);
+          var template = select.options[select.options.selectedIndex].value;
+          // alert(template);
+          if (template != "") {
+            location.href = "?template=" + template;
+          }
+        }
+    </script>
+{% endblock %}
+
+{% block navbar %}
+    <nav class="navbar navbar-default navbar-static-top">
+        <div class="container">
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li class="navbar-brand"><img src="/static/brand.png" height="20" /></li>
+                    <li><a href="/"><span class="glyphicon glyphicon-home"></span></a></li>
+                    {% if current_user.has_permission(('deployment_select', 'deployment_create', 'deployment_read', 'deployment_update', 'deployment_delete', 'deployment_commit')) %}
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Deployment <span class="caret"></span></a>
+                            <ul class="dropdown-menu">
+                                {% if current_user.has_permission('deployment_create') %}
+                                    <li><a href="{{ url_for('create_deployment') }}">New</a></li>
+                                    <li role="separator" class="divider"></li>
+                                {% endif %}
+                                {% if current_user.has_permission(('deployment_select', 'deployment_read', 'deployment_update', 'deployment_delete', 'deployment_commit' )) %}
+                                    <li class="dropdown-submenu">
+                                        <a tabindex="-1" href="#">Open</a>
+                                        <ul class="dropdown-menu">
+                                            {% for deployment in deployments %}
+                                                <li><a href="{{ url_for('select_deployment', deployment_name=deployment.name) }}">{{ deployment.name }}</a></li>
+                                            {% endfor %}
+                                        </ul>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                    {% endif %}
+                    {% if selected_deployment and current_user.has_permission(('site_create', 'site_read', 'site_update', 'site_delete', 'site_commit')) %}
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Site <span class="caret"></span></a>
+                            <ul class="dropdown-menu">
+                                {% if current_user.has_permission('site_create') %}
+                                    <li><a href="{{ url_for('create_site') }}">New</a></li>
+                                {% endif %}
+                                {% if (uncommitted_sites or archieved_sites) and current_user.has_permission(('site_read', 'site_update', 'site_delete', 'site_commit')) %}
+                                    <li role="separator" class="divider"></li>
+                                    <li class="dropdown-submenu">
+                                        <a tabindex="-1" href="#">Uncommitted</a>
+                                        {% if uncommitted_sites %}
+                                            <ul class="dropdown-menu">
+                                                {% for site in uncommitted_sites %}
+                                                    <li><a href="{{ url_for('edit_site', site_name=site.name) }}">{{ site.name }}</a></li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                    </li>
+                                    <li class="dropdown-submenu">
+                                        <a tabindex="-1" href="#">Archived</a>
+                                        {% if archieved_sites %}
+                                            <ul class="dropdown-menu">
+                                                {% for site in archieved_sites %}
+                                                    <li><a href="{{ url_for('view_site', site_name=site.name) }}">{{ site.name }}</a></li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% endif %}
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                    {% endif %}
+                {#
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Asset <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li class="dropdown-submenu">
+                                <a tabindex="-1" href="#">Assign</a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="#">plusnet-9000192862</a></li>
+                                    <li><a href="#">plusnet-9000336212</a></li>
+                                    <li><a href="#">plusnet-9000530380</a></li>
+                                    <li><a href="#">plusnet-9000890528</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                #}
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    {% if selected_deployment %}
+                        <a class="navbar-brand">{{ selected_deployment }}</a>
+                    {% endif %}
+                    <li class="divider-vertical"></li>
+                    <li class="navbar-brand"><img src="/static/128.png" height="15" style="margin-top:0.2ex" /></li>
+                    {% if current_user.has_permission(('user_management', 'role_management', 'cluster_management', 'purge_objects', 'export_data')) %}
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-cog"></span></a>
+                            <ul class="dropdown-menu">
+                                {% if current_user.has_permission('user_management') %}
+                                    <li class="dropdown-submenu">
+                                        <a tabindex="-1" href="#">Users</a>
+                                        <ul class="dropdown-menu">
+                                            <li><a href="{{ url_for('create_user') }}">New User</a></li>
+                                            <li role="separator" class="divider"></li>
+                                            {% for user in users %}
+                                                <li><a href="{{ url_for('edit_user', user_name=user.username) }}">{{ user.username }}</a></li>
+                                            {% endfor %}
+                                        </ul>
+                                    </li>
+                                {% endif %}
+                                {% if current_user.has_permission('role_management') %}
+                                    <li class="dropdown-submenu">
+                                        <a tabindex="-1" href="#">Roles</a>
+                                        <ul class="dropdown-menu">
+                                            <li><a href="{{ url_for('create_role') }}">New Role</a></li>
+                                            {% if roles %}
+                                                <li role="separator" class="divider"></li>
+                                                {% for role in roles %}
+                                                    <li><a href="{{ url_for('edit_role', role_name=role.name) }}">{{ role.name }}</a></li>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </ul>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                {% endif %}
+                                {% if current_user.has_permission('cluster_management') %}
+                                    <li class="dropdown-submenu">
+                                        <a tabindex="-1" href="#">Clusters</a>
+                                        <ul class="dropdown-menu">
+                                            <li><a href="{{ url_for('create_cluster') }}">New Cluster</a></li>
+                                            {% if clusters %}
+                                                <li role="separator" class="divider"></li>
+                                                {% for cluster in clusters %}
+                                                    <li><a href="{{ url_for('edit_cluster', cluster_name=cluster.name) }}">{{ cluster.name }}</a></li>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </ul>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                {% endif %}
+                                {% if current_user.has_permission('export_data') %}
+                                    <li><a href="{{ url_for('export') }}">Export Data</a></li>
+                                {% endif %}
+                                {% if current_user.has_permission('purge_objects') %}
+                                    <li><a href="{{ url_for('purge') }}">Purge Deleted Objects</a></li>
+                                {% endif %}
+                                <li role="separator" class="divider"></li>
+                                <li class="disabled"><a href="#">Version 0.1</a></li>
+                            </ul>
+                        </li>
+                    {% endif %}
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-user"></span></a>
+                        <ul class="dropdown-menu">
+                            <li class="dropdown-header">{{ current_user.firstname }} {{ current_user.lastname }}<br />{{ current_user.email }}</li>
+                            <li role="separator" class="divider"></li>
+                            <li><a href="/logout">Log out</a></li>
+                            <li role="separator" class="divider"></li>
+                            <li><a href="{{ url_for('change_password') }}">Change password</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div><!--/.nav-collapse -->
+        </div>
+    </nav>
+{% endblock %}

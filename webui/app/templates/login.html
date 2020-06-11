@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block styles %}
+    {{super()}}
+    <style>
+        .login-form {
+          min-width: 500px;
+          position: absolute;
+          top: 45%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+        }
+        .control-label {
+            display: none;
+        }
+        @media (max-width: 500px) {
+          .login-form {
+            min-width: 90%;
+          }
+        }
+        .heading {
+            display: flex;
+            align-items: flex-end;
+        }
+    </style>
+{% endblock %}
+
+{% block app_content %}
+    <div class="login-form">
+        <div class="content">
+            <div class="heading">
+                <div style="float:left; margin-bottom:-1ex">
+                    <h3>Login - Hyper-128T</h3>
+                </div>
+                <div>
+                    <img style="float:right" src="static/128t_black.png" height="40"/>
+                    <div style="width:20em;"></div>
+                </div>
+            </div>
+            <hr />
+            <div>
+                {{ wtf.quick_form(form, button_map={"submit": "primary"}) }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

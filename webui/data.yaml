@@ -1,0 +1,33 @@
+users:
+- username: jdoe
+  firstname: John
+  lastname: Doe
+  email: jdoe@example.com
+  password: foo
+- username: mmustermann
+  firstname: Max
+  lastname: Mustermann
+  email: max@domain.invalid
+  password: secret
+
+roles:
+- rolename: admin
+  users:
+  - jdoe
+- rolename: auftragsmanagement
+  permissions: '["deployment_select", "site_create", "site_read", "site_update"]'
+  users:
+  - mmustermann
+
+deployments:
+- name: ACME
+  ha: true
+  sites:
+  - Boston
+  - New York
+  - Chicago
+- name: Capitol
+  ha: false
+  sites:
+  - Finsdorf
+  - Köln

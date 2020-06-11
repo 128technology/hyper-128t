@@ -1,0 +1,8 @@
+bs4
+email_validator
+Flask
+Flask-Bootstrap
+Flask-Login
+Flask-SQLAlchemy
+Flask-WTF
+PyYAML
