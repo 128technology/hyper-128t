@@ -1,0 +1,110 @@
+- name: Install hyper128t-ui
+  hosts: all
+  user: root
+
+  vars:
+    repo_url: https://github.com/128technology/hyper-128t.git
+    repo_dest: /home/hyper128t/hyper128t
+    app_home: "{{ repo_dest }}/webui"
+
+  handlers:
+    - name: restart nginx
+      service:
+         name: nginx
+         state: restarted
+
+  tasks:
+    - name: Install packages
+      package:
+        name:
+          - git
+          - nginx
+          - python-setuptools
+          - python3-venv
+          - sudo
+        state: latest
+
+    - name: Add user hyper128t
+      user:
+        name: hyper128t
+
+    - name: Clone repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        force: yes
+      become: yes
+      become_user: hyper128t
+
+    - name: Install virtualenv and dependencies
+      pip:
+          requirements: "{{ app_home }}/requirements.txt"
+          virtualenv: "{{ app_home }}/venv"
+          virtualenv_command: python3 -m venv
+      become: yes
+      become_user: hyper128t
+
+    - name: Install systemd service
+      copy:
+        content: |
+            [Unit]
+            Description=Hyper-128T Web UI
+
+            [Service]
+            User=hyper128t
+            WorkingDirectory={{ app_home }}
+            ExecStartPre={{ app_home }}/check-db.sh
+            ExecStart={{ app_home }}/hyper-128t-ui.py
+
+            [Install]
+            WantedBy=multi-user.target
+        dest: /etc/systemd/system/hyper-128t-ui.service
+
+    - name: Enable service
+      systemd:
+        name: hyper-128t-ui
+        state: started
+        #daemon_reload: yes
+
+    - name: Remove nginx default page
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify:
+        - restart nginx
+
+    - name: Copy ssl config if not exists
+      copy:
+        src: /etc/nginx/snippets/snakeoil.conf
+        dest: /etc/nginx/hyper-128t-ui-ssl.conf
+        remote_src: yes
+        force: no
+
+    - name: Configure nginx
+      copy:
+        content: |
+            server {
+                listen 80;
+                return 301 https://$host$request_uri;
+            }
+            server {
+                listen 443 ssl;
+                include hyper-128t-ui-ssl.conf;
+                location / {
+                    proxy_pass http://localhost:5000/;
+                }
+                location ^~ /.well-known/acme-challenge/ {
+                    alias /var/www/letsencrypt/;
+                }
+            }
+        dest: /etc/nginx/sites-available/hyper-128t-ui.conf
+      notify:
+        - restart nginx
+
+    - name: Enable nginx config
+      file:
+        src: /etc/nginx/sites-available/hyper-128t-ui.conf
+        dest: /etc/nginx/sites-enabled/hyper-128t-ui.conf
+        state: link
+      notify:
+        - restart nginx

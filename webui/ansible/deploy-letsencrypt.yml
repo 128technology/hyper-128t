@@ -1,0 +1,52 @@
+- name: Deploy letsencrypt
+  hosts: all
+  user: root
+
+  handlers:
+    - name: restart nginx
+      service:
+         name: nginx
+         state: restarted
+
+  tasks:
+    - name: Install packages
+      package:
+        name:
+          - certbot
+        state: latest
+
+    - name: Create path for http challenge
+      file:
+        path: /var/www/letsencrypt
+        state: directory
+
+    - name: Install renew certificate script
+      copy:
+        content: |
+            #!/bin/sh
+
+            DOMAIN={{ inventory_hostname }}
+            certbot certonly -d $DOMAIN --register-unsafely-without-email --webroot --webroot-path /var/www/letsencrypt --agree-tos --quiet --post-hook "/bin/systemctl reload nginx"
+        dest: /usr/local/sbin/renew-certificate.sh
+        mode: '0755'
+
+    - name: Run renew certificate script
+      shell: /usr/local/sbin/renew-certificate.sh
+
+    - name: Create a cronjob for renewals
+      cron:
+        name: renew letsencrypt
+        minute: "42"
+        hour: "23"
+        day: "1"
+        month: "*/2"
+        job: /usr/local/sbin/renew-certificate.sh
+
+    - name: Point to the correct certs in nginx
+      copy:
+        content: |
+            ssl_certificate /etc/letsencrypt/live/{{ inventory_hostname }}/fullchain.pem;
+            ssl_certificate_key /etc/letsencrypt/live/{{ inventory_hostname }}/privkey.pem;
+        dest: /etc/nginx/hyper-128t-ui-ssl.conf
+      notify:
+        - restart nginx
