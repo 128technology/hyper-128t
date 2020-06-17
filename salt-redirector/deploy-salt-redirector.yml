@@ -1,11 +1,12 @@
-- name: Install hyper128t-ui
+- name: Deploy parking conductor
   hosts: all
   user: root
 
   vars:
+    project_name: salt-redirector
     repo_url: https://github.com/128technology/hyper-128t.git
-    repo_dest: /home/hyper128t/hyper128t
-    app_home: "{{ repo_dest }}/webui"
+    repo_dest: /home/{{ project_name }}/hyper128t
+    app_home: "{{ repo_dest }}/{{ project_name }}"
 
   handlers:
     - name: restart nginx
@@ -17,16 +18,20 @@
     - name: Install packages
       package:
         name:
+          - gcc
           - git
           - nginx
           - python-setuptools
+          - python3-dev
           - python3-venv
+          - python3-wheel
+          - salt-master
           - sudo
         state: latest
 
-    - name: Add user hyper128t
+    - name: Add user {{ project_name }}
       user:
-        name: hyper128t
+        name: "{{ project_name }}"
 
     - name: Clone repository
       git:
@@ -34,7 +39,7 @@
         dest: "{{ repo_dest }}"
         force: yes
       become: yes
-      become_user: hyper128t
+      become_user: "{{ project_name }}"
 
     - name: Install virtualenv and dependencies
       pip:
@@ -42,27 +47,34 @@
           virtualenv: "{{ app_home }}/venv"
           virtualenv_command: python3 -m venv
       become: yes
-      become_user: hyper128t
+      become_user: "{{ project_name }}"
+
+    - name: Install symlink for unexpected paths on Debian
+      file:
+        src: /var/lib/salt/pki
+        dest: /etc/salt/pki
+        state: link
 
     - name: Install systemd service
       copy:
         content: |
             [Unit]
-            Description=Hyper-128T Web UI
+            Description=Service to provide a GUI for accepting minion keys and redirection minions to Conductors
 
             [Service]
-            User=hyper128t
+            User=salt
             WorkingDirectory={{ app_home }}
-            ExecStartPre={{ app_home }}/check-db.sh
-            ExecStart={{ app_home }}/hyper-128t-ui.py
+            ExecStart={{ app_home }}/{{ project_name }}.py
+            Restart=on-failure
+            RestartSec=5
 
             [Install]
             WantedBy=multi-user.target
-        dest: /etc/systemd/system/hyper-128t-ui.service
+        dest: /etc/systemd/system/{{ project_name }}.service
 
     - name: Enable service
       systemd:
-        name: hyper-128t-ui
+        name: "{{ project_name }}"
         state: started
         #daemon_reload: yes
 
@@ -76,7 +88,7 @@
     - name: Copy ssl config if not exists
       copy:
         src: /etc/nginx/snippets/snakeoil.conf
-        dest: /etc/nginx/hyper-128t-ui-ssl.conf
+        dest: /etc/nginx/ssl.conf
         remote_src: yes
         force: no
 
@@ -89,7 +101,7 @@
             }
             server {
                 listen 443 ssl;
-                include hyper-128t-ui-ssl.conf;
+                include ssl.conf;
                 location / {
                     proxy_pass http://localhost:5000/;
                 }
@@ -97,14 +109,14 @@
                     root /var/www/letsencrypt/;
                 }
             }
-        dest: /etc/nginx/sites-available/hyper-128t-ui.conf
+        dest: /etc/nginx/sites-available/{{ project_name }}.conf
       notify:
         - restart nginx
 
     - name: Enable nginx config
       file:
-        src: /etc/nginx/sites-available/hyper-128t-ui.conf
-        dest: /etc/nginx/sites-enabled/hyper-128t-ui.conf
+        src: /etc/nginx/sites-available/{{ project_name }}.conf
+        dest: /etc/nginx/sites-enabled/{{ project_name }}.conf
         state: link
       notify:
         - restart nginx

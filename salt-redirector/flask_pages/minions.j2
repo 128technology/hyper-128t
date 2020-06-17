@@ -1,0 +1,145 @@
+<html>
+<head>
+<style>
+.container {
+  display: grid;
+  grid-template-columns: 150px 150px 150px 150px;
+  grid-gap: 10px;
+  text-align: center;
+}
+.title {
+  text-align: center;
+}
+.minion {
+  padding: 40px;
+  border: 1px solid black;
+}
+</style>
+<script>
+function add_accept_button(minion) {
+  document.getElementById("minion_actions").innerHTML = "<H2>Actions for minion: " + minion + "</H2>"
+  var controls = document.getElementById("key_control_container");
+  var form = document.createElement("form");
+  form.setAttribute('method', 'post');
+  form.setAttribute('action', '/accept/');
+  var minionId = document.createElement("input");
+  minionId.setAttribute('type', 'text');
+  minionId.setAttribute('name', 'minion');
+  minionId.setAttribute('value', minion);
+  minionId.style.display = "none";
+  var acceptMinion = document.createElement("input");
+  acceptMinion.setAttribute('type', 'submit');
+  acceptMinion.setAttribute('value', "Accept");
+  form.appendChild(minionId);
+  form.appendChild(acceptMinion);
+  while (controls.firstChild) {
+    controls.removeChild(controls.lastChild);
+  }
+  controls.appendChild(form);
+}
+
+function add_delete_button(minion) {
+  document.getElementById("minion_actions").innerHTML = "<H2>Actions for minion: " + minion + "</H2>"
+  var controls = document.getElementById("key_control_container");
+  var form = document.createElement("form");
+  form.setAttribute('method', 'post');
+  form.setAttribute('action', '/delete/');
+  var minionId = document.createElement("input");
+  minionId.setAttribute('type', 'text');
+  minionId.setAttribute('name', 'minion');
+  minionId.setAttribute('value', minion);
+  minionId.style.display = "none";
+  var acceptMinion = document.createElement("input");
+  acceptMinion.setAttribute('type', 'submit');
+  acceptMinion.setAttribute('value', "Delete");
+  form.appendChild(minionId);
+  form.appendChild(acceptMinion);
+  while (controls.firstChild) {
+    controls.removeChild(controls.lastChild);
+  }
+  controls.appendChild(form);
+}
+
+function show_redirect_form(minion) {
+  document.getElementById("redirect_title").innerHTML = "<H2>Redirect minion: " + minion + "</H2>";
+  document.getElementById("redirect_minion").setAttribute('value', minion);
+  document.getElementById("connected_minion_control_container").style.display = "inline";
+}
+</script>
+</head>
+<body>
+<div class="title">
+  <H1>Minion Key Status</H1>
+</div>
+<hr>
+<div class="container" id="key_container">
+  <div class="minion" style="grid-row-start:1;grid-column-start:1">
+    Accepted Minions
+  </div>
+  <div class="minion" style="grid-row-start:1;grid-column-start:2">
+    Unaccepted Minions
+  </div>
+  <div class="minion" style="grid-row-start:1;grid-column-start:3">
+    Rejected Minions
+  </div>
+  <div class="minion" style="grid-row-start:1;grid-column-start:4">
+    Denied Minions
+  </div>
+{%- for minion in key_states['minions'] %}
+  <div class="minion" id="{{ minion }}" style="grid-column-start:1;grid-row-start:{{ loop.index + 1 }}" onclick="add_delete_button(this.id)">
+    {{ minion }}
+  </div>
+{%- endfor %}
+{%- for minion in key_states['minions_pre'] %}
+  <div class="minion" id="{{ minion }}" style="grid-column-start:2;grid-row-start:{{ loop.index + 1 }}" onclick="add_accept_button(this.id)">
+    {{ minion }}
+  </div>
+{%- endfor %}
+{%- for minion in key_states['minions_rejected'] %}
+  <div class="minion" id="{{ minion }}" style="grid-column-start:3;grid-row-start:{{ loop.index + 1 }}" onclick="add_delete_button(this.id)">
+    {{ minion }}
+  </div>
+{%- endfor %}
+{%- for minion in key_states['minions_denied'] %}
+  <div class="minion" id="{{ minion }}" style="grid-column-start:4;grid-row-start:{{ loop.index + 1 }}" onclick="add_delete_button(this.id)">
+    {{ minion }}
+  </div>
+{%- endfor %}
+</div>
+<hr>
+<div class="title" id="minion_actions">
+  <H2>Actions for minion: </H2>
+</div>
+<div class="container" id="key_control_container">
+</div>
+<hr>
+<div class="title">
+  <H1>Connected Minions</H1>
+</div>
+<hr>
+<div class="container" id="connected_minions_container">
+{%- for minion in connected_minions %}
+  <div class="minion" id="{{ minion }}" onclick="show_redirect_form(this.id)">
+    {{ minion }}
+  </div>
+{%- endfor %}
+</div>
+<hr>
+<div class="title" id="redirect_title">
+  <H2>Redirect minion: </H2>
+</div>
+<div class="container" style="display:none" id="connected_minion_control_container">
+  <form method="post" action="/redirect/">
+    <input hidden id="redirect_minion" type="text" name="minion"></input>
+    <label for="conductors">Redirect to which conductor:</label>
+    <select name="conductor">
+{%- for conductor in conductors %}
+      <option value="{{ conductor }}">{{ conductor }}</option>
+{%- endfor %}
+    </select>
+    <br>
+    <input type="submit" value="Redirect"/>
+  </form>
+</div>
+</body>
+</html>
