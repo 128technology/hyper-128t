@@ -92,6 +92,14 @@
         remote_src: yes
         force: no
 
+    - name: Create htpasswd
+      copy:
+        dest: /etc/nginx/passwdfile
+        content: 'jdoe:$apr1$AW7HjzXY$Ebuet1OB9fWM5r42w5Iv//'
+        owner: root
+        group: www-data
+        mode: 0640
+
     - name: Configure nginx
       copy:
         content: |
@@ -104,6 +112,8 @@
                 include ssl.conf;
                 location / {
                     proxy_pass http://localhost:5000/;
+                    auth_basic "Login required";
+                    auth_basic_user_file /etc/nginx/passwdfile;
                 }
                 location ^~ /.well-known/acme-challenge/ {
                     root /var/www/letsencrypt/;
