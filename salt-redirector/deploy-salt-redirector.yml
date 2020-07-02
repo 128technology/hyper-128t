@@ -14,6 +14,12 @@
          name: nginx
          state: restarted
 
+    - name: restart salt master
+      systemd:
+        name: salt-master
+        state: restarted
+
+
   tasks:
     - name: Install packages
       package:
@@ -28,6 +34,24 @@
           - salt-master
           - sudo
         state: latest
+
+    - name: Configure salt master
+      copy:
+        dest: /etc/salt/master
+        content: |
+            transport: tcp
+            tcp_keepalive: True
+            tcp_keepalive_idle: 5
+            tcp_keepalive_cnt: 3
+            tcp_keepalive_intvl: 20
+      notify:
+        - restart salt master
+
+    - name: Install symlink for unexpected paths on Debian
+      file:
+        src: /var/lib/salt/pki
+        dest: /etc/salt/pki
+        state: link
 
     - name: Add user {{ project_name }}
       user:
@@ -48,12 +72,6 @@
           virtualenv_command: python3 -m venv
       become: yes
       become_user: "{{ project_name }}"
-
-    - name: Install symlink for unexpected paths on Debian
-      file:
-        src: /var/lib/salt/pki
-        dest: /etc/salt/pki
-        state: link
 
     - name: Install systemd service
       copy:
