@@ -65,17 +65,18 @@ def create_deployment():
     # dynamically load new clusters
     class _DeploymentForm(DeploymentCreateForm):
         pass
-    _DeploymentForm.cluster.kwargs['choices'] = sorted(list(set(
-        _DeploymentForm.cluster.kwargs['choices'] +
-        [(c.id, c.name) for c in Cluster.query.all()])))
+    # _DeploymentForm.cluster.kwargs['choices'] = sorted(list(set(
+    #     _DeploymentForm.cluster.kwargs['choices'] +
+    #     [(c.id, c.name) for c in Cluster.query.all()])))
 
     # when a new deploment is created, unselect a previous one
     reset_selected_deployment()
 
     form = _DeploymentForm()
     if form.validate_on_submit():
-        deployment = Deployment(cluster=Cluster.query.get(form.cluster.data))
-        del form.cluster
+        # deployment = Deployment(cluster=Cluster.query.get(form.cluster.data))
+        deployment = Deployment(cluster=Cluster.query.filter_by().first())
+        # del form.cluster
         form.populate_obj(deployment)
         db.session.add(deployment)
         db.session.commit()
