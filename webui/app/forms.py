@@ -140,8 +140,9 @@ class DeploymentForm(FlaskForm):
     name = StringField(validators=[DataRequired()],
         render_kw={'placeholder': 'Deployment name', 'autofocus': True})
     cluster = SelectField(
-        choices=[(0, '--- Please select cluster ---')] +
-                [(c.id, c.name) for c in Cluster.query.all()],
+        choices=[(0, '--- Please select cluster ---')],
+        # choices=[(0, '--- Please select cluster ---')] +
+        #         [(c.id, c.name) for c in Cluster.query.all()],
         validators=[DataRequired()],
         coerce=int,
     )

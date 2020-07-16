@@ -2,7 +2,7 @@ from flask import session
 
 #from app.lib import get_settings
 from app import lib
-from app.models import Cluster, Deployment, Role, Site, User
+from app.models import Cluster, Deployment, Role, User
 
 
 def get_selected_deployment():

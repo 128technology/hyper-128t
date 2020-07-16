@@ -63,8 +63,8 @@ def main():
         print(u, u.role)
     db.session.commit()
 
+    cluster_deployments = {}
     for cluster in data.get('clusters', []):
-        cluster_deployments = {}
         deployments = cluster['deployments']
         del(cluster['deployments'])
         c = Cluster(**cluster)
@@ -76,14 +76,16 @@ def main():
     #return
 
     for deployment in data.get('deployments', []):
+        sites = deployment['sites']
+        del(deployment['sites'])
         d = Deployment(**deployment)
-        d.cluster = cluster_deployments[d.name  ]
+        d.cluster = cluster_deployments[d.name]
         db.session.add(d)
         print(d.cluster)
-        # for site in deployment['sites']:
-        #     s = Site(name=site, deployment=d)
-        #     print(s)
-        #     db.session.add(s)
+        for site in sites:
+             s = Site(name=site, deployment=d)
+             print(s)
+             db.session.add(s)
         print(d)
     db.session.commit()
 

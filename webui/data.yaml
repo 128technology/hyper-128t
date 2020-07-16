@@ -19,15 +19,19 @@ roles:
   users:
   - mmustermann
 
+clusters:
+- name: Demo-Cluster
+  deployments:
+  - ACME
+  - Capitol
+
 deployments:
 - name: ACME
-  ha: true
   sites:
   - Boston
   - New York
   - Chicago
 - name: Capitol
-  ha: false
   sites:
   - Finsdorf
   - Köln
