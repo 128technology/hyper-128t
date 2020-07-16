@@ -23,6 +23,7 @@ def filter_template_vars(template_vars):
     exclude_keys = [
         'conductor_ips',
         '_deployment_name_',
+        '_deployment_short_name_',
         '_site_name_',
     ]
     for key in exclude_keys:

@@ -118,7 +118,8 @@ class Role(db.Model):
 
 class Deployment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), index=True, unique=True)
+    name = db.Column(db.String(128), index=True, unique=True)
+    short_name = db.Column(db.String(32), index=True, unique=True)
     domain_name = db.Column(db.String(128))
     location = db.Column(db.String(128))
     high_available = db.Column(db.Boolean, default=True)
@@ -200,6 +201,7 @@ class Site(db.Model):
         if self.deployment.conductor_ip_address_2:
             conductor_ips.append(str(self.deployment.conductor_ip_address_2))
         parameters['_deployment_name_'] = self.deployment.name
+        parameters['_deployment_short_name_'] = self.deployment.short_name
         parameters['_site_name_'] = self.name
         parameters['conductor_ips'] = conductor_ips
         if not template_string:

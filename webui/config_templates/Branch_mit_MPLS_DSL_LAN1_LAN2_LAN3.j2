@@ -1,4 +1,6 @@
-
+{% if _deployment_short_name_ %}
+{% set _deployment_name_ = _deployment_short_name_ %}
+{% endif %}
 config
 
     authority

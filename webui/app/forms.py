@@ -139,35 +139,37 @@ class SiteForm(FlaskForm):
 class DeploymentForm(FlaskForm):
     name = StringField(validators=[DataRequired()],
         render_kw={'placeholder': 'Deployment name', 'autofocus': True})
-    cluster = SelectField(
-        choices=[(0, '--- Please select cluster ---')],
-        # choices=[(0, '--- Please select cluster ---')] +
-        #         [(c.id, c.name) for c in Cluster.query.all()],
-        validators=[DataRequired()],
-        coerce=int,
-    )
-    domain_name = StringField(validators=[DataRequired()],
-                              render_kw={'placeholder': 'sdwan.plusnet.de'})
-    location = StringField(
-        render_kw={'placeholder': 'Mathias-Brüggen-Str. 55, 50829 Köln'})
+    short_name = StringField()
+    # cluster = SelectField(
+    #     choices=[(0, '--- Please select cluster ---')],
+    #     # choices=[(0, '--- Please select cluster ---')] +
+    #     #         [(c.id, c.name) for c in Cluster.query.all()],
+    #     validators=[DataRequired()],
+    #     coerce=int,
+    # )
+    # domain_name = StringField(validators=[DataRequired()],
+    #                           render_kw={'placeholder': 'sdwan.plusnet.de'})
+    # location = StringField(
+    #     render_kw={'placeholder': 'Mathias-Brüggen-Str. 55, 50829 Köln'})
     #high_available = BooleanField(default=True, render_kw={'onchange': 'enable_ha(this)'})
-    high_available = BooleanField(default=True)
+    #high_available = BooleanField(default=True)
     conductor_ip_address_1 = StringField(
         'Conductor IP Address #1', validators=[InputRequired(), IPAddress()])
-    conductor_ip_address_2 = StringField(
-        'Conductor IP Address #2', validators=[IPAddress()])
+    # conductor_ip_address_2 = StringField(
+    #     'Conductor IP Address #2', validators=[IPAddress()])
+    conductor_ip_address_2 = StringField('Conductor IP Address #2')
     #admin_password = StringField('admin Password', validators=[DataRequired()])
     #root_password = StringField('root Password', validators=[DataRequired()])
     #t128_password = StringField('t128 Password', validators=[DataRequired()])
     #deploy = BooleanField(default=True)
-    is_installed = BooleanField()
+    #is_installed = BooleanField()
     #root_ssh_key = StringField()
     #t128_ssh_key = StringField()
-    config_template = SelectField(
-        choices=[('', '--- Please select template ---')] +
-                [(template, template) for template in get_config_templates()],
-        validators=[DataRequired()],
-    )
+    # config_template = SelectField(
+    #     choices=[('', '--- Please select template ---')] +
+    #             [(template, template) for template in get_config_templates()],
+    #     validators=[DataRequired()],
+    # )
 
 
 class DeploymentCreateForm(DeploymentForm):

@@ -48,8 +48,9 @@ def get_db_site(site_name):
 
 def change_deployment(form, deployment, action):
     # store seleted cluster to add it properly to the user object later
-    cluster = Cluster.query.filter_by(name=form.cluster.data).first()
-    del form.cluster
+    #cluster = Cluster.query.filter_by(name=form.cluster.data).first()
+    cluster = Cluster.query.filter_by().first()
+    #del form.cluster
     form.populate_obj(deployment)
     deployment.cluster = cluster
     db.session.add(deployment)
@@ -99,15 +100,33 @@ def edit_deployment(deployment_name):
             return redirect(url_for('index'))
 
     # dynamically load new clusters
-    class _DeploymentEditForm(DeploymentEditForm):
-        pass
+    # class _DeploymentEditForm(DeploymentEditForm):
+    #     pass
     # _DeploymentEditForm.cluster.kwargs['choices'] = sorted(list(set(
     #     _DeploymentEditForm.cluster.kwargs['choices'] +
     #     [(c.id, c.name) for c in Cluster.query.all()])))
 
     deployment = get_db_deployment(deployment_name)
-    form = _DeploymentEditForm(obj=deployment)
+    # form = _DeploymentEditForm(obj=deployment)
+    form = DeploymentEditForm()
+    print('validate_on_submit:', form.validate_on_submit())
 
+    # form = _DeploymentEditForm(data={'cluster': 1})
+    # form.cluster.default = 1
+    # form.process()
+    # #form.process(obj=deployment)
+    # print('form.cluster.data:', form.cluster.data)
+    # print('form.cluster.default:', form.cluster.default)
+    # # # if not form.cluster.data:
+    # # #form.cluster.data = (deployment.cluster.id, deployment.cluster.name)
+    # print('deployment.cluster:', deployment.cluster)
+    from pprint import pprint
+    pprint(form.__dict__)
+    print('CSRF:', form.csrf_token)
+    # if form.is_submitted():
+    #     print("submitted")
+    # if form.validate():
+    #     print("valid")
     if form.validate_on_submit():
         if form.update.data:
             change_deployment(form, deployment, 'updated')
@@ -115,7 +134,8 @@ def edit_deployment(deployment_name):
             return redirect(url_for('delete_deployment', deployment_name=deployment.name))
 
     else:
-        form = _DeploymentEditForm(obj=deployment)
+        #form = _DeploymentEditForm(obj=deployment)
+        form = DeploymentEditForm(obj=deployment)
     context = get_context()
     return _render_template(
         'generic_form.html', title='Edit Deployment', form=form, **context)
