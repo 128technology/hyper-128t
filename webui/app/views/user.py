@@ -46,19 +46,19 @@ def create_user():
 @login_required
 @permission_required('user_management')
 def edit_user(user_name):
-    form = UserEditForm()
-    user = User.query.filter_by(username=user_name).first()
-    if form.validate_on_submit():
-        if form.update.data:
-            return change_user(form, user, 'updated')
-        if form.delete.data:
-            return redirect(url_for('delete_user', user_name=user.username))
+        form = UserEditForm()
+        user = User.query.filter_by(username=user_name).first()
+        if form.validate_on_submit():
+            if form.update.data:
+                return change_user(form, user, 'updated')
+            if form.delete.data:
+                return redirect(url_for('delete_user', user_name=user.username))
 
-    form = UserEditForm(obj=user)
-    form.role.data = user.role.name
-    context = get_context()
-    return _render_template(
-        'generic_form.html', title='Edit User', form=form, **context)
+        form = UserEditForm(obj=user)
+        form.role.data = user.role.name
+        context = get_context()
+        return _render_template(
+            'generic_form.html', title='Edit User', form=form, **context)
 
 
 @app.route('/delete_user/<user_name>')

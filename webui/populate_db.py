@@ -1,21 +1,41 @@
 #!venv/bin/python
-from app import db
-from app.models import Deployment, Role, Site, User
+import argparse
 import yaml
 from werkzeug.security import generate_password_hash
 
+from app import db
+from app.models import Cluster, Deployment, Role, Settings, Site, User
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser('Import data into database')
+    parser.add_argument('--import-filename', '-i', default='data.yaml',
+                        help='import filename')
+    return parser.parse_args()
+
 
 def main():
+    args = parse_arguments()
+    import_filename = args.import_filename
+
+    # cleanup
     db.drop_all()
     db.create_all()
 
-    data = yaml.safe_load(open('data.yaml'))
+    data = yaml.safe_load(open(import_filename))
+
+    settings = data.get('settings')
+    if settings:
+        s = Settings(**settings)
+        db.session.add(s)
+        db.session.commit()
 
     basic_user = Role(name="basic_user")
     db.session.add(basic_user)
     user_roles = {}
-    for role in data['roles']:
-        r = Role(name=role['rolename'])
+
+    for role in data.get('roles', []):
+        r = Role(name=role['name'])
         if 'permissions' in role:
             r.permissions = role['permissions']
         db.session.add(r)
@@ -23,14 +43,18 @@ def main():
             user_roles[user] = r
     db.session.commit()
 
-    for user in data['users']:
+    for user in data.get('users', []):
         username = user['username']
+        if 'password' in user:
+            password_hash = generate_password_hash(user['password'])
+        else:
+            password_hash = user['password_hash']
         u = User(
             username=username,
             firstname=user['firstname'],
             lastname=user['lastname'],
             email=user['email'],
-            password_hash=generate_password_hash(user['password']),
+            password_hash=password_hash,
             role=basic_user,
         )
         if username in user_roles:
@@ -39,13 +63,27 @@ def main():
         print(u, u.role)
     db.session.commit()
 
-    for deployment in data['deployments']:
-        d = Deployment(name=deployment['name'])
+    for cluster in data.get('clusters', []):
+        cluster_deployments = {}
+        deployments = cluster['deployments']
+        del(cluster['deployments'])
+        c = Cluster(**cluster)
+        for deployment in deployments:
+            cluster_deployments[deployment] = c
+        db.session.add(c)
+        print(c)
+    db.session.commit()
+    #return
+
+    for deployment in data.get('deployments', []):
+        d = Deployment(**deployment)
+        d.cluster = cluster_deployments[d.name  ]
         db.session.add(d)
-        for site in deployment['sites']:
-            s = Site(name=site, deployment=d)
-            print(s)
-            db.session.add(s)
+        print(d.cluster)
+        # for site in deployment['sites']:
+        #     s = Site(name=site, deployment=d)
+        #     print(s)
+        #     db.session.add(s)
         print(d)
     db.session.commit()
 

@@ -5,4 +5,10 @@ Flask-Bootstrap
 Flask-Login
 Flask-SQLAlchemy
 Flask-WTF
+lxml
+opencage
+paramiko
 PyYAML
+six
+sqlalchemy_utils
+yinsolidated

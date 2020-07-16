@@ -1,5 +1,7 @@
 from flask import session
 
+#from app.lib import get_settings
+from app import lib
 from app.models import Cluster, Deployment, Role, Site, User
 
 
@@ -20,6 +22,7 @@ def get_context():
         'clusters': Cluster.query.filter_by(is_deleted=False),
         'deployments': Deployment.query.filter_by(is_deleted=False),
         'roles': Role.query.all(),
+        'settings': lib.get_settings(),
         'users': User.query.filter_by(is_deleted=False),
     }
     selected_deployment = get_selected_deployment()

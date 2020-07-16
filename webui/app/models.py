@@ -1,9 +1,32 @@
 from datetime import datetime
 from flask_login import UserMixin
 import json
+import os
+from sqlalchemy_utils import IPAddressType
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
+from app import lib
 from app import login
+from app import templates
+
+
+class Settings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    opencage_key = db.Column(db.String(32))
+    config_highlight_color = db.Column(db.String(50))
+    default_tls_cert = db.Column(db.Text)
+
+    def to_dict(self):
+        d = {}
+        for key, value in self.__dict__.items():
+            if key.startswith('_'):
+                continue
+            if not value:
+                continue
+            if key in ('id',):
+                continue
+            d[key] = value
+        return d
 
 
 class User(UserMixin, db.Model):
@@ -33,7 +56,7 @@ class User(UserMixin, db.Model):
         for key, value in self.__dict__.items():
             if key.startswith('_'):
                 continue
-            if key == 'id' or key == 'role_id':
+            if key in ('id', 'role_id', 'role'):
                 continue
             d[key] = value
         return d
@@ -60,6 +83,7 @@ class Role(db.Model):
        'cluster_management',
        'export_data',
        'purge_objects',
+       'change_settings',
        'deployment_select',
        'deployment_create',
        'deployment_read',
@@ -98,6 +122,8 @@ class Deployment(db.Model):
     domain_name = db.Column(db.String(128))
     location = db.Column(db.String(128))
     high_available = db.Column(db.Boolean, default=True)
+    conductor_ip_address_1 = db.Column(IPAddressType)
+    conductor_ip_address_2 = db.Column(IPAddressType)
     admin_password = db.Column(db.String(64))
     root_password = db.Column(db.String(64))
     t128_password = db.Column(db.String(64))
@@ -122,6 +148,9 @@ class Deployment(db.Model):
                 continue
             if key == 'id':
                 continue
+            if key in ('conductor_ip_address_1', 'conductor_ip_address_2'):
+                d[key] = str(value)
+                continue
             if not value:
                 continue
             d[key] = value
@@ -133,8 +162,9 @@ class Site(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), index=True)
     template_name = db.Column(db.String(512))
-    template_content = db.Column(db.Text)
+    #template_content = db.Column(db.Text)
     template_parameters = db.Column(db.Text)
+    msr_parameters = db.Column(db.Text)
     is_installed = db.Column(db.Boolean, default=False)
     is_deleted = db.Column(db.Boolean, default=False)
     deployment_id = db.Column(db.Integer, db.ForeignKey('deployment.id'))
@@ -158,6 +188,44 @@ class Site(db.Model):
                 continue
             d[key] = value
         return d
+
+    def get_template_parameters(self):
+        return json.loads(self.template_parameters)
+
+    def get_msr_parameters(self):
+        return json.loads(self.msr_parameters)
+
+    def get_text_config(self, parameters, template_string=None):
+        conductor_ips = [str(self.deployment.conductor_ip_address_1)]
+        if self.deployment.conductor_ip_address_2:
+            conductor_ips.append(str(self.deployment.conductor_ip_address_2))
+        parameters['_deployment_name_'] = self.deployment.name
+        parameters['_site_name_'] = self.name
+        parameters['conductor_ips'] = conductor_ips
+        if not template_string:
+            template_string = templates.get_template_content(self.template_name)
+        text_config = templates.get_rendered_template(template_string, parameters)
+        return text_config, conductor_ips
+
+    def commit(self, callback_success, callback_error):
+        parameters = self.get_template_parameters().copy()
+        parameters.update(self.get_msr_parameters())
+
+        text_config, conductor_ips = self.get_text_config(parameters)
+
+        # fallback if no deployment key can be found
+        identity_file = 'netconf_ssh_key'
+        deployment_key = '../ssh_keys/{}'.format(self.deployment.name.lower())
+        if os.path.isfile(deployment_key):
+            identity_file = deployment_key
+
+        return lib.commit_config(
+            conductor_ips,
+            identity_file,
+            text_config,
+            callback_success,
+            callback_error,
+        )
 
 
 class Cluster(db.Model):
@@ -190,7 +258,7 @@ class Cluster(db.Model):
             if key in ('id',):
                 continue
             if key == 'provider':
-                d[key] = self.PROVIDER_CHOICES[value]
+                d[key] = value
                 continue
             d[key] = value
         d['deployments'] = [deployment.name for deployment in self.deployments]

@@ -1,0 +1,248 @@
+
+config
+
+    authority
+        {% for conductor_ip in conductor_ips -%}
+        conductor-address  {{ conductor_ip }}
+        {% endfor -%}
+
+        router  {{ location_id }}-{{ _deployment_name_|lower }}-{{ _site_name_|lower }}
+            name                                {{ location_id }}-{{ _deployment_name_|lower }}-{{ _site_name_|lower }}
+            location                            "{{ inst_zip }} {{ inst_town }}, {{ inst_street }}"
+            location-coordinates                {{ gps_coordinates }}
+            inter-node-security                 internal
+            system
+                services
+                    snmp-server
+                        enabled         true
+                        version         v2c
+                        port            161
+                        access-control  Monitoring
+                            name       Monitoring
+                            community  25154550
+                            source     169.254.20.1
+                        exit
+                    exit
+                exit
+            exit
+            node                            {{ node_id }}-{{ _deployment_name_|lower }}-{{ _site_name_|lower }}-node
+                name                        {{ node_id }}-{{ _deployment_name_|lower }}-{{ _site_name_|lower }}-node
+                role                        combo
+                device-interface            WAN2
+                    name                  WAN2
+                    description           "Schnittstelle eth02"
+                    type                  ethernet
+                    pci-address           0000:12:00.0
+                    network-interface     Ext-Line-InternetAccess
+                        name                      Ext-Line-InternetAccess
+                        description               Vodafone
+                        conductor                 true
+                        neighborhood              {{ _deployment_name_|lower }}-internet-neighborhood
+                            name                     {{ _deployment_name_|lower }}-internet-neighborhood
+                            peer-connectivity        outbound-only
+                            vector                   internet-1-vector
+                            path-mtu-discovery
+                                enabled   true
+                            exit
+                        exit
+                        neighborhood              {{ _deployment_name_|lower }}-monitoring
+                            name               {{ _deployment_name_|lower }}-monitoring
+                            peer-connectivity  outbound-only
+                            path-mtu-discovery
+                                enabled   true
+                            exit
+                        exit
+                        inter-router-security     {{ _deployment_name_|lower }}-inter-router
+                        source-nat                true
+                        mtu                       1492
+                        dhcp                      v4
+                    exit
+                exit
+
+                device-interface            LAN4
+                    name                  LAN4
+                    description           "Schnittstelle eth08"
+                    type                  ethernet
+                    pci-address           0000:0a:00.0
+
+                    traffic-engineering
+                        enabled       true
+                        transmit-cap  20000000
+                    exit
+                    network-interface     lan-alfatraining
+                        name                      lan-alfatraining
+                        description               "LAN Port für alfatraining"
+                        tenant                    alfatraining
+                        address                   172.16.100.1
+                            ip-address     172.16.100.1
+                            prefix-length  24
+
+                            host-service   dhcp-server
+                                description     "DHCP Server für alfatraining"
+                                service-type    dhcp-server
+                                enabled         true
+                                max-lease-time  86400
+                                echo-client-id  true
+
+                                address-pool    172.16.100.10
+                                    start-address  172.16.100.10
+                                    end-address    172.16.100.200
+                                    router         172.16.100.1
+                                    domain-server  8.8.8.8
+                                    domain-server  8.8.4.4
+                                    ntp-server     213.148.130.10
+                                    ntp-server     213.148.130.254
+                                exit
+                            exit
+                        exit
+                        icmp                      allow
+                        multicast-listeners       automatic
+                        multicast-report-proxy    false
+                        dhcp                      disabled
+                        reverse-arp-mac-learning  false
+                        prefix-delegation         false
+                    exit
+                exit
+                device-interface            Loopback
+                    name                  Loopback
+                    type                  host
+                    network-interface     Loopback
+                        name                      Loopback
+                        default-route             true
+                        tenant                    128t-management
+                        source-nat                true
+                        management-vector
+                            name      internet-1-vector
+                            priority  200
+                        exit
+                        address                   169.254.20.1
+                            ip-address     169.254.20.1
+                            prefix-length  30
+                            gateway        169.254.20.2
+                        exit
+                    exit
+                exit
+                device-interface            LoopbackMoni
+                    name                  LoopbackMoni
+                    description           "Loopback VPN445 Monitoring"
+                    type                  host
+                    network-interface     Loopback445
+                        name                      Loopback445
+                        tenant                    monitoring
+                        address                   10.100.1.2
+                            ip-address     10.100.1.2
+                            prefix-length  32
+                        exit
+                    exit
+                exit
+                device-interface            LAN3
+                    name                  LAN3
+                    description           "Schnittstelle eth07"
+                    type                  ethernet
+                    pci-address           0000:0b:00.0
+                    traffic-engineering
+                        enabled       true
+                        transmit-cap  20000000
+                    exit
+                    network-interface     lan-gast
+                        name                      lan-gast
+                        description               "LAN Port für Gäste"
+                        tenant                    gast
+                        address                   172.16.101.1
+                            ip-address     172.16.101.1
+                            prefix-length  24
+
+                            host-service   dhcp-server
+                                description     "DHCP Server für Gäste"
+                                service-type    dhcp-server
+                                max-lease-time  86400
+                                address-pool    172.16.101.10
+                                    start-address  172.16.101.10
+                                    end-address    172.16.101.200
+                                    router         172.16.101.1
+                                    domain-server  8.8.8.8
+                                    domain-server  8.8.4.4
+                                    ntp-server     213.148.130.10
+                                    ntp-server     213.148.130.254
+                                exit
+                            exit
+                        exit
+                    exit
+                exit
+                device-interface            LAN1
+                    name                  LAN1
+                    description           "Schnittstelle eth05"
+                    type                  ethernet
+                    pci-address           0000:0d:00.0
+                    network-interface     lan-{{ _deployment_name_|lower }}-vpn{{ vpn_instance_id }}
+                        name                      lan-{{ _deployment_name_|lower }}-vpn{{ vpn_instance_id }}
+                        description               "LAN IP Netz Standort {{ _site_name_ }}"
+                        tenant                    {{ _deployment_name_|lower }}-vpn{{ vpn_instance_id }}
+                        address                   {{ auto_lan_ip }}
+                            ip-address     {{ auto_lan_ip }}
+                            prefix-length  {{ auto_lan_ip_mask }}
+                        exit
+                    exit
+                exit
+
+                device-interface            WAN1
+                    name               WAN1
+                    description        "Schnittstelle eth01"
+                    pci-address        0000:13:00.0
+                    network-interface  cpe10250088-MPLS-VPN{{ vpn_instance_id }}
+                        name                   cpe10250088-MPLS-VPN{{ vpn_instance_id }}
+                        description            "WAN via MPLS VPN"
+                        conductor              true
+                        neighborhood           {{ _deployment_name_|lower }}-vpn{{ vpn_instance_id }}-neighborhood
+                            name                {{ _deployment_name_|lower }}-vpn{{ vpn_instance_id }}-neighborhood
+                            topology            mesh
+                            vector              mpls-1-vektor
+                            path-mtu-discovery
+                                enabled  true
+                            exit
+                        exit
+                        neighborhood           {{ _deployment_name_|lower }}-monitoring
+                            name                {{ _deployment_name_|lower }}-monitoring
+                            vector              mpls-1-vektor
+                            path-mtu-discovery
+                                enabled  true
+                            exit
+                        exit
+                        inter-router-security  {{ _deployment_name_|lower }}-inter-router
+                        source-nat             true
+                        mtu                    1492
+                        address                {{ mpls_ip_address }}
+                            ip-address     {{ mpls_ip_address }}
+                            prefix-length  {{ mpls_prefix_length }}
+                            gateway        {{ mpls_gateway }}
+                        exit
+                    exit
+                exit
+            exit
+        exit
+
+        security  {{ _deployment_name_|lower }}-inter-router
+            name  {{ _deployment_name_|lower }}-inter-router
+        exit
+
+        tenant 128t-management
+            name 128t-management
+        exit
+        tenant alfatraining
+            name alfatraining
+        exit
+        tenant gast
+            name gast
+        exit
+        tenant monitoring
+            name monitoring
+        exit
+        tenant {{ _deployment_name_|lower }}-vpn{{ vpn_instance_id }}
+            name {{ _deployment_name_|lower }}-vpn{{ vpn_instance_id }}
+        exit
+        tenant 128t-management
+            name 128t-management
+        exit
+    exit
+exit
+

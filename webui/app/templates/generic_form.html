@@ -12,9 +12,33 @@
                     button_map={"submit": "primary",
                                 "create": "primary",
                                 "update": "primary",
+                                "create_deploy": "success",
+                                "deploy": "success",
                                 "commit": "success",
                                 "delete": "danger"
             }) }}
         </div>
+        {% if text_config %}
+        <div class="panel panel-default" style="margin-top: 3em">
+            <div class="panel-heading">
+                <div style="overflow-y: hidden">
+                    <div style="float: left">
+                        <strong class="panel-title">
+                            128T config preview
+                        </strong>
+                    </div>
+                    <div style="float: right">
+                        <a role="button" data-toggle="collapse" href="#collapse" style="clear:both;">
+                            <span class="glyphicon glyphicon-chevron-down"></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div id="collapse" class="panel-collapse collapse" role="tabpanel">
+            <div class="panel-body">
+                <pre style="background: white; border: 0"><code>{{ text_config | safe }}</code></pre>
+            </div>
+        </div>
+        {% endif %}
     </div>
 {% endblock %}

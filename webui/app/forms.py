@@ -2,12 +2,28 @@ from collections import OrderedDict
 
 from flask_wtf import FlaskForm
 import wtforms
-from wtforms import BooleanField, FieldList, FormField, PasswordField, SelectField, SelectMultipleField, StringField, SubmitField
+from wtforms import BooleanField, FieldList, FormField, PasswordField, SelectField, SelectMultipleField, StringField, SubmitField, TextAreaField
 from wtforms import Form
-from wtforms.validators import DataRequired, Email, EqualTo, InputRequired, Required
+from wtforms.validators import DataRequired, Email, EqualTo, InputRequired, IPAddress, Required
 
 from app.models import Cluster, Deployment, Role, Site
 from app.templates import get_config_templates
+
+
+class SettingsForm(FlaskForm):
+    opencage_key = StringField(
+        render_kw={
+            'placeholder': '1234567890abcdef1234567890abcdef',
+            # 'data_toggle': 'tooltip',
+            # 'data_placement': 'left',
+            # 'title': 'For details about OpenCage Geocoder see: <a href="https://opencagedata.com/">https://opencagedata.com/</a>',
+        },
+    )
+    config_highlight_color = StringField(
+        filters=[lambda v: '#28a745' if v == '' else v],
+        render_kw={'placeholder': '#28a745'},
+    )
+    update = SubmitField()
 
 
 class LoginForm(FlaskForm):
@@ -108,14 +124,24 @@ class SiteForm(FlaskForm):
         choices=[('', '--- Please select template ---')] +
                 [(template, template) for template in get_config_templates()],
         validators=[DataRequired()],
-        render_kw={'onchange': 'load_template(this)'})
+        render_kw={'onchange': 'load_template()'})
+    name = StringField(
+        'Site Name', validators=[DataRequired()],
+        render_kw={'placeholder': 'e.g. name of the city', 'autofocus': True})
+    msr_data = TextAreaField('MSR Data',
+                             render_kw={'onpaste': 'paste_msr()'})
+    create = SubmitField('Create Site')
+    update = SubmitField('Update Site')
+    commit = SubmitField('Commit to Conductor')
+    delete = SubmitField('Delete Site')
 
 
 class DeploymentForm(FlaskForm):
     name = StringField(validators=[DataRequired()],
         render_kw={'placeholder': 'Deployment name', 'autofocus': True})
     cluster = SelectField(
-        choices=[(0, '--- Please select cluster ---')],
+        choices=[(0, '--- Please select cluster ---')] +
+                [(c.id, c.name) for c in Cluster.query.all()],
         validators=[DataRequired()],
         coerce=int,
     )
@@ -123,18 +149,34 @@ class DeploymentForm(FlaskForm):
                               render_kw={'placeholder': 'sdwan.plusnet.de'})
     location = StringField(
         render_kw={'placeholder': 'Mathias-Brüggen-Str. 55, 50829 Köln'})
+    #high_available = BooleanField(default=True, render_kw={'onchange': 'enable_ha(this)'})
     high_available = BooleanField(default=True)
-    admin_password = StringField('admin Password', validators=[DataRequired()])
-    root_password = StringField('root Password', validators=[DataRequired()])
-    t128_password = StringField('t128 Password', validators=[DataRequired()])
-    root_ssh_key = StringField()
-    t128_ssh_key = StringField()
+    conductor_ip_address_1 = StringField(
+        'Conductor IP Address #1', validators=[InputRequired(), IPAddress()])
+    conductor_ip_address_2 = StringField(
+        'Conductor IP Address #2', validators=[IPAddress()])
+    #admin_password = StringField('admin Password', validators=[DataRequired()])
+    #root_password = StringField('root Password', validators=[DataRequired()])
+    #t128_password = StringField('t128 Password', validators=[DataRequired()])
+    #deploy = BooleanField(default=True)
+    is_installed = BooleanField()
+    #root_ssh_key = StringField()
+    #t128_ssh_key = StringField()
     config_template = SelectField(
         choices=[('', '--- Please select template ---')] +
                 [(template, template) for template in get_config_templates()],
         validators=[DataRequired()],
     )
+
+
+class DeploymentCreateForm(DeploymentForm):
     create = SubmitField()
+    create_deploy = SubmitField('Create & Deploy')
+
+class DeploymentEditForm(DeploymentForm):
+    deploy = SubmitField()
+    update = SubmitField()
+    delete = SubmitField()
 
 
 class SiteEditForm(FlaskForm):

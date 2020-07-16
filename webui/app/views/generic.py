@@ -6,8 +6,8 @@ from werkzeug.urls import url_parse
 from app import app
 from app import db
 from app.audit import audit_log
-from app.forms import ClusterCreateForm, ClusterEditForm, ClusterForm, LoginForm, PasswordChangeForm, PurgeForm
-from app.lib import _render_template, permission_required
+from app.forms import ClusterCreateForm, ClusterEditForm, ClusterForm, LoginForm, PasswordChangeForm, PurgeForm, SettingsForm
+from app.lib import _render_template, get_settings, permission_required, process_form
 from app.models import Cluster, Deployment, Role, Site, User
 from app.views.context import get_context, reset_selected_deployment
 
@@ -17,6 +17,23 @@ from app.views.context import get_context, reset_selected_deployment
 def index():
     context = get_context()
     return _render_template('index.html', title='Home', **context)
+
+
+def process_settings_form(form, name, context):
+    class _Form(form.__class__):
+        pass
+    settings = get_settings()
+    form = _Form(obj=settings)
+    if form.validate_on_submit():
+        form.populate_obj(settings)
+    return form, settings
+
+
+@app.route('/settings', methods=['GET', 'POST'])
+@permission_required('change_settings')
+@login_required
+def handle_settings():
+    return process_form(process_settings_form, None, SettingsForm())
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -127,3 +144,16 @@ def purge():
     return _render_template('purge.html', title='Purge Deleted Objects',
                             form=form, deleted_objects=objects,
                             num_objects=num_objects, **context)
+
+# @app.route('/map/<coordinates>')
+# @login_required
+# def show_map(coordinates):
+#     if coordinates.startswith('+'):
+#         latitude = ''
+#         coordinates = coordinates[1:]
+#     if coordinates.startswith('-'):
+#         latitude = '-'
+#         coordinates = coordinates[1:]
+#     coordinates = coordinates.strip('/').replace('+', ',').replace('-', ',-')
+#     coordinates = '{}{}'.format(latitude, coordinates)
+#     return _render_template('map.html', coordinates=coordinates)

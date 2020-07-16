@@ -11,10 +11,10 @@ users:
   password: secret
 
 roles:
-- rolename: admin
+- name: admin
   users:
   - jdoe
-- rolename: auftragsmanagement
+- name: auftragsmanagement
   permissions: '["deployment_select", "site_create", "site_read", "site_update"]'
   users:
   - mmustermann

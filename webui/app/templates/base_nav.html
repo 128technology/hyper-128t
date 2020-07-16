@@ -51,15 +51,24 @@
             -moz-border-radius:6px 0 6px 6px;
             border-radius:6px 0 6px 6px;
         }
+        .template_variable {
+            color: {{ settings.config_highlight_color }};
+        }
     </style>
     <script type="text/javascript">
-        function load_template(select) {
-          // console.log(select);
-          var template = select.options[select.options.selectedIndex].value;
-          // alert(template);
-          if (template != "") {
-            location.href = "?template=" + template;
-          }
+        function load_template() {
+            console.log("bar");
+            document.getElementsByClassName("form form-horizontal")[0].submit();
+        }
+        function paste_msr(element) {
+            console.log("foo");
+            // document.getElementsByClassName("form form-horizontal")[0].submit();
+        }
+        function open_map(element) {
+            console.log(element.value);
+            var url = "https://www.google.de/maps/search/" + element.value;
+            fenster = window.open(url, "fenster1", "width=1000,height=600,status=yes,scrollbars=yes,resizable=yes");
+            fenster.focus();
         }
     </script>
 {% endblock %}
@@ -84,7 +93,7 @@
                                         <a tabindex="-1" href="#">Open</a>
                                         <ul class="dropdown-menu">
                                             {% for deployment in deployments %}
-                                                <li><a href="{{ url_for('select_deployment', deployment_name=deployment.name) }}">{{ deployment.name }}</a></li>
+                                                <li><a href="{{ url_for('edit_deployment', deployment_name=deployment.name) }}">{{ deployment.name }}</a></li>
                                             {% endfor %}
                                         </ul>
                                     </li>
@@ -97,7 +106,7 @@
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Site <span class="caret"></span></a>
                             <ul class="dropdown-menu">
                                 {% if current_user.has_permission('site_create') %}
-                                    <li><a href="{{ url_for('create_site') }}">New</a></li>
+                                    <li><a href="{{ url_for('handle_site') }}">New</a></li>
                                 {% endif %}
                                 {% if (uncommitted_sites or archieved_sites) and current_user.has_permission(('site_read', 'site_update', 'site_delete', 'site_commit')) %}
                                     <li role="separator" class="divider"></li>
@@ -106,7 +115,7 @@
                                         {% if uncommitted_sites %}
                                             <ul class="dropdown-menu">
                                                 {% for site in uncommitted_sites %}
-                                                    <li><a href="{{ url_for('edit_site', site_name=site.name) }}">{{ site.name }}</a></li>
+                                                    <li><a href="{{ url_for('handle_site', site_name=site.name) }}">{{ site.name }}</a></li>
                                                 {% endfor %}
                                             </ul>
                                         {% endif %}
@@ -116,7 +125,7 @@
                                         {% if archieved_sites %}
                                             <ul class="dropdown-menu">
                                                 {% for site in archieved_sites %}
-                                                    <li><a href="{{ url_for('view_site', site_name=site.name) }}">{{ site.name }}</a></li>
+                                                    <li><a href="{{ url_for('handle_site', site_name=site.name) }}">{{ site.name }}</a></li>
                                                 {% endfor %}
                                             </ul>
                                         {% endif %}
@@ -152,6 +161,10 @@
                         <li class="dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><span class="glyphicon glyphicon-cog"></span></a>
                             <ul class="dropdown-menu">
+                                {% if current_user.has_permission('export_data') %}
+                                    <li><a href="{{ url_for('handle_settings') }}">Global Settings</a></li>
+                                    <li role="separator" class="divider"></li>
+                                {% endif %}
                                 {% if current_user.has_permission('user_management') %}
                                     <li class="dropdown-submenu">
                                         <a tabindex="-1" href="#">Users</a>
