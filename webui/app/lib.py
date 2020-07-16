@@ -19,6 +19,7 @@ import lib.config_template as ct
 from lib.configurator import t128ConfigHelper
 from ncclient.operations.rpc import RPCError
 from lib.ote_utils.netconfutils.netconfconverter import ConfigParseError
+from ncclient.transport.errors import AuthenticationError
 
 
 def _render_template(*args, **kwargs):
@@ -89,6 +90,10 @@ def commit_config(conductor_ips, identity_file, text_config,
     except RPCError as e:
         callback_error("There was an error in the config: {}".format(e))
         return False
+    except AuthenticationError:
+        callback_error("Authentication error: connect connect to the conductor (missing identity_file?)")
+        return False
+
 
     if isinstance(edit_status, str):
         info(edit_status)
