@@ -199,7 +199,7 @@ def parse_msr_data(msr_data):
     msr_parameters = {}
     if msr_data:
         for line in msr_data.splitlines():
-            cols = line.split('!')[0].split(':')
+            cols = line.split('!')[0].split(':', 1)
             if len(cols) >= 2:
                 key, value = cols[:2]
                 key = key.strip().replace('-', '_')
