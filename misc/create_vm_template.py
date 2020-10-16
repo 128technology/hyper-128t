@@ -102,6 +102,8 @@ def main():
                 continue
 
         vm_options = DEFAULTS.copy()
+        if 'vm_options' in config:
+            vm_options.update(config['vm_options'])
         vm_options['vmid'] = new_id
         vm_options['name'] = template_name
         vm_options['ide2'] = iso_image + ',media=cdrom'

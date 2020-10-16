@@ -35,12 +35,19 @@ class Deployment(object):
             hypervisor = provider.Hypervisor(self.config, host, index+1)
             self.hypervisors.append(hypervisor)
 
-        # TODO: subset selection to be implemented
-        # (round-robin, random, most resources, ...)
-        # specify the hypervisors for the conductor
-        self.hypervisors_conductor = self.hypervisors
-        # specify the hypervisors for the headend
-        self.hypervisors_headend = self.hypervisors
+        # subset selection for conductors and routers: assign round robin
+        num_hypervisors = len(self.hypervisors)
+        if self.high_available:
+            # specify the hypervisors for the conductor
+            self.hypervisors_conductor = [
+                self.hypervisors[i % num_hypervisors] for i in (0, 1)]
+            # specify the hypervisors for the headend
+            self.hypervisors_headend = [
+                self.hypervisors[i % num_hypervisors] for i in (2, 3)]
+        else:
+            # specify the hypervisor for the conductor
+            self.hypervisors_conductor = [self.hypervisors[0 % num_hypervisors]]
+            self.hypervisors_headend = [self.hypervisors[1 % num_hypervisors]]
 
     def set_conductor(self, hypervisors, suffixes):
         """Helper."""
