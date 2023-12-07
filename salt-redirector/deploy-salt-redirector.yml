@@ -1,6 +1,7 @@
 - name: Deploy parking conductor
   hosts: all
   user: root
+  gather_facts: False
 
   vars:
     project_name: salt-redirector
@@ -21,13 +22,18 @@
 
 
   tasks:
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
     - name: Install packages
       package:
         name:
           - gcc
           - git
           - nginx
-          - python-setuptools
+          - python3-setuptools
           - python3-dev
           - python3-venv
           - python3-wheel
@@ -113,7 +119,7 @@
     - name: Create htpasswd
       copy:
         dest: /etc/nginx/passwdfile
-        content: 'jdoe:$apr1$AW7HjzXY$Ebuet1OB9fWM5r42w5Iv//'
+        content: 'jdoe:$apr1$O4/kNhFr$exVZk.BhMK99pq2eXBp3U0'
         owner: root
         group: www-data
         mode: 0640

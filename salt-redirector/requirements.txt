@@ -1,2 +1,2 @@
 flask
-salt==3000
+salt
