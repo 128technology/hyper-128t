@@ -1,0 +1,179 @@
+- name: Deploy parking conductor
+  hosts: all
+  user: root
+  gather_facts: False
+
+  vars:
+    project_name: salt-redirector
+    repo_url: https://github.com/128technology/hyper-128t.git
+    repo_dest: /home/{{ project_name }}/hyper128t
+    app_home: "{{ repo_dest }}/{{ project_name }}"
+    tls_key: /etc/nginx/www.example.com.key
+    tls_cert: /etc/nginx/www.example.com.cert
+
+  handlers:
+    - name: set reboot_required
+      set_fact:
+        reboot_required: true
+
+    - name: reboot
+      reboot:
+
+    - name: restart nginx
+      service:
+         name: nginx
+         state: restarted
+      when: not reboot_required
+
+    - name: restart salt master
+      systemd:
+        name: salt-master
+        state: restarted
+      when: not reboot_required
+
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+      when: not reboot_required
+
+    - name: "restart {{ project_name }}"
+      systemd:
+        name: "{{ project_name }}"
+        state: restarted
+      when: not reboot_required
+
+  tasks:
+    - name: Install packages
+      package:
+        name:
+          - epel-release
+          # - epel-next-release
+          - git
+          - nginx
+          - python3
+          - python3-pip
+        state: latest
+
+    - name: Disable SELinux
+      lineinfile:
+        path: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: SELINUX=disabled
+      notify:
+        - set reboot_required
+        - reboot
+
+    - name: Install packages
+      package:
+        name:
+          - salt-master
+          - screen
+        state: latest
+
+    - name: Configure salt master
+      copy:
+        dest: /etc/salt/master
+        mode: '0644'
+        content: |
+            transport: tcp
+            tcp_keepalive: True
+            tcp_keepalive_idle: 5
+            tcp_keepalive_cnt: 3
+            tcp_keepalive_intvl: 20
+      notify:
+        - restart salt master
+
+    - name: Add user {{ project_name }}
+      user:
+        name: "{{ project_name }}"
+
+    - name: Clone repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        force: yes
+      become: yes
+      become_user: "{{ project_name }}"
+
+    - name: Install virtualenv and dependencies
+      pip:
+          requirements: "{{ app_home }}/requirements.txt"
+          virtualenv: "{{ app_home }}/venv"
+          virtualenv_command: python3 -m venv
+      become: yes
+      become_user: "{{ project_name }}"
+
+    - name: Install systemd service
+      copy:
+        content: |
+            [Unit]
+            Description=Service to provide a GUI for accepting minion keys and redirection minions to Conductors
+
+            [Service]
+            WorkingDirectory={{ app_home }}
+            ExecStart={{ app_home }}/{{ project_name }}.py
+            Restart=on-failure
+            RestartSec=5
+
+            [Install]
+            WantedBy=multi-user.target
+        dest: /etc/systemd/system/{{ project_name }}.service
+      notify:
+        - reload systemd
+        - restart {{ project_name }}
+
+    - name: Create TLS keys
+      command:
+        cmd: openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com" -keyout {{ tls_key }} -out {{ tls_cert }}
+        creates: "{{ tls_cert }}"
+      become_user: nginx
+
+    - name: Create nginx TLS config
+      copy:
+        dest: /etc/nginx/tls.conf
+        content: |
+            ssl_certificate {{ tls_cert }};
+            ssl_certificate_key {{ tls_key }};
+      notify:
+        - restart nginx
+
+    - name: Create htpasswd
+      copy:
+        dest: /etc/nginx/passwdfile
+        content: 'jdoe:$apr1$O4/kNhFr$exVZk.BhMK99pq2eXBp3U0'
+        owner: nginx
+        group: nginx
+        mode: 0640
+
+    - name: Configure nginx
+      copy:
+        content: |
+            server {
+                listen 80;
+                return 301 https://$host$request_uri;
+            }
+            server {
+                listen 443 ssl;
+                include tls.conf;
+                location / {
+                    proxy_pass http://localhost:5000/;
+                    auth_basic "Login required";
+                    auth_basic_user_file /etc/nginx/passwdfile;
+                }
+                location ^~ /.well-known/acme-challenge/ {
+                    root /var/www/letsencrypt/;
+                }
+            }
+        dest: /etc/nginx/conf.d/{{ project_name }}.conf
+      notify:
+        - restart nginx
+
+    - name: Enable and start services
+      systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - nginx
+        - salt-master
+        - "{{ project_name }}"
