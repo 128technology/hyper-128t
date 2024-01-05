@@ -122,6 +122,16 @@
         - reload systemd
         - restart {{ project_name }}
 
+    - name: Create salt states root directory
+      file:
+        path: /srv/salt
+        state: directory
+
+    - name: Install redirect salt state
+      copy:
+        dest: /srv/salt/redirect.sls
+        src: redirect.sls
+
     - name: Create TLS keys
       command:
         cmd: openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com" -keyout {{ tls_key }} -out {{ tls_cert }}
