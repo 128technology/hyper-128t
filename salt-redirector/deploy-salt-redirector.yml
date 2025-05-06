@@ -12,16 +12,33 @@
   handlers:
     - name: restart nginx
       service:
-         name: nginx
-         state: restarted
+        name: nginx
+        state: restarted
 
     - name: restart salt master
       systemd:
         name: salt-master
         state: restarted
 
+    - name: force update package cache
+      ansible.builtin.apt:
+        update_cache: yes
 
   tasks:
+    - name: Get salt public key
+      get_url:
+        url: https://packages.broadcom.com/artifactory/api/security/keypair/SaltProjectKey/public
+        dest: /etc/apt/keyrings/salt-archive-keyring.pgp
+
+    - name: Install salt repo
+      get_url:
+        url: https://github.com/saltstack/salt-install-guide/releases/latest/download/salt.sources
+        dest: /etc/apt/sources.list.d/salt.sources
+      notify: force update package cache
+
+    - name: Flush handlers
+      meta: flush_handlers
+
     - name: Update package cache
       ansible.builtin.apt:
         update_cache: yes
@@ -38,6 +55,7 @@
           - python3-venv
           - python3-wheel
           - salt-master
+          - ssl-cert
           - sudo
         state: latest
 
@@ -45,19 +63,13 @@
       copy:
         dest: /etc/salt/master
         content: |
-            transport: tcp
-            tcp_keepalive: True
-            tcp_keepalive_idle: 5
-            tcp_keepalive_cnt: 3
-            tcp_keepalive_intvl: 20
+          transport: tcp
+          tcp_keepalive: True
+          tcp_keepalive_idle: 5
+          tcp_keepalive_cnt: 3
+          tcp_keepalive_intvl: 20
       notify:
         - restart salt master
-
-    - name: Install symlink for unexpected paths on Debian
-      file:
-        src: /var/lib/salt/pki
-        dest: /etc/salt/pki
-        state: link
 
     - name: Add user {{ project_name }}
       user:
@@ -73,34 +85,35 @@
 
     - name: Install virtualenv and dependencies
       pip:
-          requirements: "{{ app_home }}/requirements.txt"
-          virtualenv: "{{ app_home }}/venv"
-          virtualenv_command: python3 -m venv
+        requirements: "{{ app_home }}/requirements.txt"
+        virtualenv: "{{ app_home }}/venv"
+        virtualenv_command: /opt/saltstack/salt/bin/python3 -m venv --system-site-packages
       become: yes
       become_user: "{{ project_name }}"
 
     - name: Install systemd service
       copy:
         content: |
-            [Unit]
-            Description=Service to provide a GUI for accepting minion keys and redirection minions to Conductors
+          [Unit]
+          Description=Service to provide a GUI for accepting minion keys and redirection minions to Conductors
 
-            [Service]
-            User=salt
-            WorkingDirectory={{ app_home }}
-            ExecStart={{ app_home }}/{{ project_name }}.py
-            Restart=on-failure
-            RestartSec=5
+          [Service]
+          #User=salt
+          WorkingDirectory={{ app_home }}
+          ExecStart={{ app_home }}/{{ project_name }}.py
+          Restart=on-failure
+          RestartSec=5
 
-            [Install]
-            WantedBy=multi-user.target
+          [Install]
+          WantedBy=multi-user.target
         dest: /etc/systemd/system/{{ project_name }}.service
 
     - name: Enable service
       systemd:
         name: "{{ project_name }}"
+        enabled: yes
         state: started
-        #daemon_reload: yes
+        daemon_reload: yes
 
     - name: Remove nginx default page
       file:
@@ -119,7 +132,7 @@
     - name: Create htpasswd
       copy:
         dest: /etc/nginx/passwdfile
-        content: 'jdoe:$apr1$O4/kNhFr$exVZk.BhMK99pq2eXBp3U0'
+        content: "jdoe:$apr1$O4/kNhFr$exVZk.BhMK99pq2eXBp3U0"
         owner: root
         group: www-data
         mode: 0640
@@ -127,22 +140,22 @@
     - name: Configure nginx
       copy:
         content: |
-            server {
-                listen 80;
-                return 301 https://$host$request_uri;
-            }
-            server {
-                listen 443 ssl;
-                include ssl.conf;
-                location / {
-                    proxy_pass http://localhost:5000/;
-                    auth_basic "Login required";
-                    auth_basic_user_file /etc/nginx/passwdfile;
-                }
-                location ^~ /.well-known/acme-challenge/ {
-                    root /var/www/letsencrypt/;
-                }
-            }
+          server {
+              listen 80;
+              return 301 https://$host$request_uri;
+          }
+          server {
+              listen 443 ssl;
+              include ssl.conf;
+              location / {
+                  proxy_pass http://localhost:5000/;
+                  auth_basic "Login required";
+                  auth_basic_user_file /etc/nginx/passwdfile;
+              }
+              location ^~ /.well-known/acme-challenge/ {
+                  root /var/www/letsencrypt/;
+              }
+          }
         dest: /etc/nginx/sites-available/{{ project_name }}.conf
       notify:
         - restart nginx
