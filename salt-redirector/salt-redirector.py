@@ -38,7 +38,11 @@ def display_minions():
     context['conductors'] = list(conductors.keys())
     key_states = wheel.cmd('key.list_all')
     context['key_states'] = key_states
-    connected_minions = runner.cmd('manage.up')
+    connected_minions = []
+    try:
+        connected_minions = runner.cmd('manage.up')
+    except:
+        pass
     context['connected_minions'] = connected_minions
     page_template = jj.get_template('minions.j2')
     return page_template.render(context)
@@ -59,12 +63,15 @@ def delete_minion():
 def redirect_minion():
     minion = request.form.get('minion')
     conductor_name = request.form.get('conductor')
-    ret = client.cmd(minion, 
-              'state.apply', 
-              ['redirect', 
-               "pillar={{'conductor':{}}}".format(conductors[conductor_name])
-              ])
-    print(ret)
+    try:
+        ret = client.cmd(minion,
+                'state.apply',
+                ['redirect',
+                "pillar={{'conductor':{}}}".format(conductors[conductor_name])
+                ])
+        print(ret)
+    except:
+        pass
     return "Attempting to redirect {} to conductor {}".format(minion, conductor_name)
 
 app.run(host='0.0.0.0')
